@@ -122,7 +122,7 @@ func command(s S3) *exec.Cmd {
 	// if not recursive, remove from the
 	// above arguments.
 	if !s.Recursive {
-		args[4] = ""
+		args = append(args[:4], args[4+1:]...)
 	}
 
 	return exec.Command("aws", args...)
