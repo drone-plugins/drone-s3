@@ -1,0 +1,30 @@
+build:
+  image: drone/golang
+  environment:
+    - CGO_ENABLED=0
+    - GOPATH=/drone
+  commands:
+    - go get
+    - go build
+    - go test
+
+publish:
+  docker:
+    username: drone
+    password: $$DOCKER_PASS
+    email: $$DOCKER_EMAIL
+    repo: plugins/drone-s3
+    when:
+      branch: master
+
+plugin:
+  name: S3
+  desc: Publish files and artifacts to Amazon S3
+  type: publish
+  image: plugins/drone-s3
+  labels:
+    - publish
+    - artifacts
+    - amazon
+    - aws
+    - s3
