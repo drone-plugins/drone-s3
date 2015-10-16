@@ -85,8 +85,12 @@ func main() {
 
 	cmd := command(vargs)
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "AWS_ACCESS_KEY_ID="+vargs.Key)
-	cmd.Env = append(cmd.Env, "AWS_SECRET_ACCESS_KEY="+vargs.Secret)
+	if len(vargs.Key) > 0 {
+		cmd.Env = append(cmd.Env, "AWS_ACCESS_KEY_ID="+vargs.Key)
+	}
+	if len(vargs.Secret) > 0 {
+		cmd.Env = append(cmd.Env, "AWS_SECRET_ACCESS_KEY="+vargs.Secret)
+	}
 	cmd.Dir = workspace.Path
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
