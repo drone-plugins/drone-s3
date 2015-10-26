@@ -1,7 +1,7 @@
 Use the S3 plugin to upload files and build artifacts to an S3 bucket. The following parameters are used to configure this plugin:
 
-* **access_key** - amazon key
-* **secret_key** - amazon secret key
+* **access_key** - amazon key (optional)
+* **secret_key** - amazon secret key (optional)
 * **bucket** - bucket name
 * **region** - bucket region (`us-east-1`, `eu-west-1`, etc)
 * **acl** - access to files that are uploaded (`private`, `public-read`, etc)
