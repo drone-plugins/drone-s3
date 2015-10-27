@@ -1,0 +1,18 @@
+{
+    "repo": {
+        "owner": "octocat",
+        "name": "hello-world",
+        "full_name": "octocat/hello-world"
+    },
+    "build": {
+        "number": 1,
+        "status": "success"
+    },
+    "vargs": {
+        "bucket": "my-precious",
+        "access_key": "11111",
+        "secret_key": "22222",
+        "source": "a",
+        "target": "b"
+    }
+}
