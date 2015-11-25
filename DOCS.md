@@ -16,7 +16,7 @@ publish:
   s3:
     acl: public-read
     region: "us-east-1"
-    bucket: "my-bucket.s3-website-us-east-1.amazonaws.com"
+    bucket: "my-bucket-name"
     access_key: "970d28f4dd477bc184fbd10b376de753"
     secret_key: "9c5785d3ece6a9cdefa42eb99b58986f9095ff1c"
     source: files/to/archive
