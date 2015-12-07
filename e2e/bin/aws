@@ -1,0 +1,65 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+use feature 'say';
+
+sub quote_each {
+    my @result;
+    foreach my $w (@_) {
+        push @result, "\"$w\"";
+    }
+    return @result;
+}
+
+if (defined $ENV{RM_FILE}) {
+    unlink $ENV{RM_FILE};
+}
+
+if (defined $ENV{JUST_FAIL}) {
+    print STDERR "Failing as requested with $ENV{JUST_FAIL}\n";
+    exit $ENV{JUST_FAIL};
+}
+
+if ($ENV{EXPECTED_AWS_ACCESS_KEY_ID}) {
+    unless (defined $ENV{AWS_ACCESS_KEY_ID}) {
+        die "AWS_ACCESS_KEY_ID is not passed to AWS CLI, but expected";
+    } elsif ($ENV{AWS_ACCESS_KEY_ID} ne $ENV{EXPECTED_AWS_ACCESS_KEY_ID}) {
+        die "Passed AWS_ACCESS_KEY_ID \'$ENV{AWS_ACCESS_KEY_ID}\' does not match expected \'$ENV{EXPECTED_AWS_ACCESS_KEY_ID}\'";
+    }
+}
+
+if ($ENV{UNEXPECTED_AWS_ACCESS_KEY_ID}) {
+    if (defined $ENV{AWS_ACCESS_KEY_ID}) {
+        die "AWS_ACCESS_KEY_ID is passed to AWS CLI, but not expected";
+    } elsif ($ENV{AWS_ACCESS_KEY_ID} eq $ENV{EXPECTED_AWS_ACCESS_KEY_ID}) {
+        die "Passed AWS_ACCESS_KEY_ID \'$ENV{AWS_ACCESS_KEY_ID}\' matches the unexpected \'$ENV{EXPECTED_AWS_ACCESS_KEY_ID}\'";
+    }
+}
+
+if ($ENV{EXPECTED_AWS_SECRET_ACCESS_KEY}) {
+    unless (defined $ENV{AWS_SECRET_ACCESS_KEY}) {
+        die "AWS_SECRET_ACCESS_KEY is not passed to AWS CLI, but expected";
+    } elsif ($ENV{AWS_SECRET_ACCESS_KEY} ne $ENV{EXPECTED_AWS_SECRET_ACCESS_KEY}) {
+        die "Passed AWS_SECRET_ACCESS_KEY \'$ENV{AWS_SECRET_ACCESS_KEY}\' does not match expected \'$ENV{EXPECTED_AWS_SECRET_ACCESS_KEY}\'";
+    }
+}
+
+if ($ENV{UNEXPECTED_AWS_SECRET_ACCESS_KEY}) {
+    if (defined $ENV{AWS_SECRET_ACCESS_KEY}) {
+        die "AWS_SECRET_ACCESS_KEY is passed to AWS CLI, but not expected";
+    } elsif ($ENV{AWS_SECRET_ACCESS_KEY} eq $ENV{EXPECTED_AWS_SECRET_ACCESS_KEY}) {
+        die "Passed AWS_SECRET_ACCESS_KEY \'$ENV{AWS_SECRET_ACCESS_KEY}\' matches the unexpected \'$ENV{EXPECTED_AWS_SECRET_ACCESS_KEY}\'";
+    }
+}
+
+my $cmd = join(' ', quote_each(@ARGV));
+
+if ($ENV{EXPECTED_CMD}) {
+    die "Passed command line \'$cmd\' does not match expected \'$ENV{EXPECTED_CMD}\'" unless $cmd =~ m/$ENV{EXPECTED_CMD}/;
+}
+
+if ($ENV{UNEXPECTED_CMD}) {
+    die "Passed command line \'$cmd\' matches the unexpected \'$ENV{EXPECTED}\'" unless $cmd !~ m/$ENV{UNEXPECTED_CMD}/;
+}
+

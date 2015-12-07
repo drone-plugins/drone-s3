@@ -9,6 +9,9 @@ build:
     - go get
     - go build
     - go test
+    - curl -L https://github.com/sstephenson/bats/archive/v0.4.0.tar.gz | tar xzv -C /tmp
+    - /tmp/bats-0.4.0/install.sh /usr/local
+    - bats e2e/*.bats
 
 publish:
   docker:
