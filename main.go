@@ -50,7 +50,13 @@ type S3 struct {
 	Recursive bool `json:"recursive"`
 }
 
+var (
+	buildDate string
+)
+
 func main() {
+	fmt.Printf("Drone S3 Plugin built at %s\n", buildDate)
+
 	workspace := plugin.Workspace{}
 	vargs := S3{}
 
