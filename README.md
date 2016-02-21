@@ -4,7 +4,7 @@
 [![Coverage Status](https://aircover.co/badges/drone-plugins/drone-s3/coverage.svg)](https://aircover.co/drone-plugins/drone-s3)
 [![](https://badge.imagelayers.io/plugins/drone-s3:latest.svg)](https://imagelayers.io/?images=plugins/drone-s3:latest 'Get your own badge on imagelayers.io')
 
-Drone plugin to publish files and artifacts to Amazon S3
+Drone plugin to publish files and artifacts to Amazon S3. For the usage information and a listing of the available options please take a look at [the docs](DOCS.md).
 
 ## Binary
 
