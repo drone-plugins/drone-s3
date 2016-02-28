@@ -64,13 +64,6 @@ func main() {
 	plugin.Param("vargs", &vargs)
 	plugin.MustParse()
 
-	// skip if AWS key or SECRET are empty. A good example for this would
-	// be forks building a project. S3 might be configured in the source
-	// repo, but not in the fork
-	if len(vargs.Key) == 0 || len(vargs.Secret) == 0 {
-		return
-	}
-
 	// make sure a default region is set
 	if len(vargs.Region) == 0 {
 		vargs.Region = "us-east-1"
