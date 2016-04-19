@@ -48,6 +48,9 @@ type S3 struct {
 
 	// Recursive uploads
 	Recursive bool `json:"recursive"`
+
+	Include []string
+	Exclude []string
 }
 
 var (
@@ -133,6 +136,14 @@ func command(s S3) *exec.Cmd {
 	// above arguments.
 	if !s.Recursive {
 		args = append(args[:4], args[4+1:]...)
+	}
+
+	for i := 0; i < len(s.Include); i++ {
+		args = append(args, "--include", s.Include[i])
+	}
+
+	for i := 0; i < len(s.Exclude); i++ {
+		args = append(args, "--exclude", s.Exclude[i])
 	}
 
 	return exec.Command("aws", args...)
