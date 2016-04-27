@@ -2,6 +2,7 @@ Use the S3 plugin to upload files and build artifacts to an S3 bucket. The follo
 
 * **access_key** - amazon key (optional)
 * **secret_key** - amazon secret key (optional)
+* **use_iam** - use the host's AWS IAM role (optional)
 * **bucket** - bucket name
 * **region** - bucket region (`us-east-1`, `eu-west-1`, etc)
 * **acl** - access to files that are uploaded (`private`, `public-read`, etc)
@@ -12,7 +13,21 @@ Use the S3 plugin to upload files and build artifacts to an S3 bucket. The follo
 * **exclude** - A list of exclude [filters](http://docs.aws.amazon.com/cli/latest/reference/s3/index.html#use-of-exclude-and-include-filters)
 
 
-The following is a sample Slack configuration in your .drone.yml file:
+The following is a sample S3 configuration that will use the host's IAM role in your .drone.yml file:
+
+```yaml
+publish:
+  s3:
+    acl: public-read
+    region: "us-east-1"
+    bucket: "my-bucket-name"
+    use_iam: true
+    source: files/to/archive
+    target: /target/location
+    recursive: true
+```
+
+Or you can specify an access_key and secret_key:
 
 ```yaml
 publish:

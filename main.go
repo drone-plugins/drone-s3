@@ -12,6 +12,7 @@ import (
 type S3 struct {
 	Key    string `json:"access_key"`
 	Secret string `json:"secret_key"`
+	UseIam bool   `json:"use_iam"`
 	Bucket string `json:"bucket"`
 
 	// us-east-1
@@ -67,11 +68,16 @@ func main() {
 	plugin.Param("vargs", &vargs)
 	plugin.MustParse()
 
-	// skip if AWS key or SECRET are empty. A good example for this would
-	// be forks building a project. S3 might be configured in the source
-	// repo, but not in the fork
-	if len(vargs.Key) == 0 || len(vargs.Secret) == 0 {
+	// make sure either (access_key and secret_key) OR (use_iam) is set
+	if (len(vargs.Key) == 0 || len(vargs.Secret) == 0) && !vargs.UseIam {
+		fmt.Printf("Must specify either `access_key` and `secret_key` OR `use_iam`\n")
 		return
+	}
+
+	// make it an error if all three are set
+	if len(vargs.Key) > 0 && len(vargs.Secret) > 0 && vargs.UseIam {
+		fmt.Printf("Specifying `access_key`, `secret_key`, and `use_iam` is ambiguous.\n")
+		os.Exit(1)
 	}
 
 	// make sure a default region is set
