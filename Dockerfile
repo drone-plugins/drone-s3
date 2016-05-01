@@ -7,6 +7,7 @@ FROM gliderlabs/alpine:3.1
 RUN apk add --update \
 	python \
 	py-pip \
-	&& pip install awscli
+	&& pip install awscli \
+	&& aws configure set default.s3.signature_version s3v4
 ADD drone-s3 /bin/
 ENTRYPOINT ["/bin/drone-s3"]

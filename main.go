@@ -14,6 +14,8 @@ type S3 struct {
 	Secret string `json:"secret_key"`
 	Bucket string `json:"bucket"`
 
+	Endpoint string `json:"endpoint"`
+
 	// us-east-1
 	// us-west-1
 	// us-west-2
@@ -136,6 +138,10 @@ func command(s S3) *exec.Cmd {
 	// above arguments.
 	if !s.Recursive {
 		args = append(args[:4], args[4+1:]...)
+	}
+
+	if len(s.Endpoint) > 0 {
+		args = append(args, "--endpoint-url", s.Endpoint)
 	}
 
 	for i := 0; i < len(s.Include); i++ {
