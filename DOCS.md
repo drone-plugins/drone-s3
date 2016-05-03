@@ -12,7 +12,7 @@ Use the S3 plugin to upload files and build artifacts to an S3 bucket. The follo
 * **exclude** - A list of exclude [filters](http://docs.aws.amazon.com/cli/latest/reference/s3/index.html#use-of-exclude-and-include-filters)
 
 
-The following is a sample Slack configuration in your .drone.yml file:
+The following is a sample S3 configuration in your .drone.yml file:
 
 ```yaml
 publish:
