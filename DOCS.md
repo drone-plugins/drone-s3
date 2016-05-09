@@ -3,6 +3,7 @@ Use the S3 plugin to upload files and build artifacts to an S3 bucket. The follo
 * **access_key** - amazon key (optional)
 * **secret_key** - amazon secret key (optional)
 * **bucket** - bucket name
+* **endpoint** - custom endpoint URL (optional, to use a S3 compatible non-Amazon service)
 * **region** - bucket region (`us-east-1`, `eu-west-1`, etc)
 * **acl** - access to files that are uploaded (`private`, `public-read`, etc)
 * **source** - location of files to upload
