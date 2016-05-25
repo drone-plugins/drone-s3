@@ -1,39 +1,22 @@
-build:
-  image: golang:1.5
-  environment:
-    - CGO_ENABLED=0
-  commands:
-    - make deps
-    - make vet
-    - make build
-    - make test
+pipeline:
+  build:
+    image: golang:1.6
+    commands:
+      - CGO_ENABLED=0 go build
 
-publish:
-  coverage:
+  docker:
+    storage_driver: overlay
+    repo: plugins/s3
+    tag: [ "latest", "1.0", "1" ]
     when:
       branch: master
-  docker:
-    username: $$DOCKER_USER
-    password: $$DOCKER_PASS
-    email: $$DOCKER_EMAIL
-    repo: plugins/drone-s3
-    tag: latest
-    when:
-      branch: master
-  docker:
-    username: $$DOCKER_USER
-    password: $$DOCKER_PASS
-    email: $$DOCKER_EMAIL
-    repo: plugins/drone-s3
-    tag: develop
-    when:
-      branch: develop
+      event: push
 
 plugin:
   name: S3
   desc: Publish files and artifacts to Amazon S3
   type: publish
-  image: plugins/drone-s3
+  image: plugins/s3
   labels:
     - publish
     - artifacts

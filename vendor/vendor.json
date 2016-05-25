@@ -1,0 +1,49 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "RQ8uEehMnbc8lncEG94anEBT4E0=",
+			"path": "github.com/codegangsta/cli",
+			"revision": "1ce6660d5de65095e81443b119d50585984142c7",
+			"revisionTime": "2016-05-24T00:56:50Z"
+		},
+		{
+			"checksumSHA1": "ljZrmD7pmMXAkGNfp6IEzj31fY8=",
+			"path": "github.com/joho/godotenv",
+			"revision": "4ed13390c0acd2ff4e371e64d8b97c8954138243",
+			"revisionTime": "2015-09-07T01:02:28Z"
+		},
+		{
+			"checksumSHA1": "UE4lhbPYYWEhqHXQk24OA73m5+8=",
+			"path": "github.com/joho/godotenv/autoload",
+			"revision": "4ed13390c0acd2ff4e371e64d8b97c8954138243",
+			"revisionTime": "2015-09-07T01:02:28Z"
+		},
+		{
+			"checksumSHA1": "kyzMPE3pJ8dc+ifT9Ie682Wb+8I=",
+			"path": "github.com/mattn/go-zglob",
+			"revision": "249e8bceca8cd265110a08bbb63303fb9db47445",
+			"revisionTime": "2016-02-25T02:11:25Z"
+		},
+		{
+			"checksumSHA1": "NjuwnT9vODlUoOdFMvTgwUlJFdc=",
+			"path": "github.com/mitchellh/goamz/aws",
+			"revision": "caaaea8b30ee15616494ee68abd5d8ebbbef05cf",
+			"revisionTime": "2015-03-17T17:43:35Z"
+		},
+		{
+			"checksumSHA1": "4J6sW5KD2MFC+ApdGVGyM35ZA1Q=",
+			"path": "github.com/mitchellh/goamz/s3",
+			"revision": "caaaea8b30ee15616494ee68abd5d8ebbbef05cf",
+			"revisionTime": "2015-03-17T17:43:35Z"
+		},
+		{
+			"checksumSHA1": "sFD8LpJPQtWLwGda3edjf5mNUbs=",
+			"path": "github.com/vaughan0/go-ini",
+			"revision": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1",
+			"revisionTime": "2013-09-23T14:52:12Z"
+		}
+	],
+	"rootPath": "github.com/drone-plugins/drone-s3"
+}

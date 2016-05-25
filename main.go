@@ -1,156 +1,102 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
-	"os/exec"
 	"strings"
 
-	"github.com/drone/drone-plugin-go/plugin"
+	"github.com/codegangsta/cli"
+	_ "github.com/joho/godotenv/autoload"
 )
 
-type S3 struct {
-	Key    string `json:"access_key"`
-	Secret string `json:"secret_key"`
-	Bucket string `json:"bucket"`
-
-	// us-east-1
-	// us-west-1
-	// us-west-2
-	// eu-west-1
-	// ap-southeast-1
-	// ap-southeast-2
-	// ap-northeast-1
-	// sa-east-1
-	Region string `json:"region"`
-
-	// Indicates the files ACL, which should be one
-	// of the following:
-	//     private
-	//     public-read
-	//     public-read-write
-	//     authenticated-read
-	//     bucket-owner-read
-	//     bucket-owner-full-control
-	Access string `json:"acl"`
-
-	// Copies the files from the specified directory.
-	// Regexp matching will apply to match multiple
-	// files
-	//
-	// Examples:
-	//    /path/to/file
-	//    /path/to/*.txt
-	//    /path/to/*/*.txt
-	//    /path/to/**
-	Source string `json:"source"`
-	Target string `json:"target"`
-
-	// Recursive uploads
-	Recursive bool `json:"recursive"`
-
-	Include []string
-	Exclude []string
-}
-
-var (
-	buildCommit string
-)
+var version string // build number set at compile-time
 
 func main() {
-	fmt.Printf("Drone S3 Plugin built from %s\n", buildCommit)
+	app := cli.NewApp()
+	app.Name = "s3 artifact plugin"
+	app.Usage = "s3 artifact plugin"
+	app.Action = run
+	app.Version = version
+	app.Flags = []cli.Flag{
 
-	workspace := plugin.Workspace{}
-	vargs := S3{}
-
-	plugin.Param("workspace", &workspace)
-	plugin.Param("vargs", &vargs)
-	plugin.MustParse()
-
-	// skip if AWS key or SECRET are empty. A good example for this would
-	// be forks building a project. S3 might be configured in the source
-	// repo, but not in the fork
-	if len(vargs.Key) == 0 || len(vargs.Secret) == 0 {
-		return
+		cli.StringFlag{
+			Name:   "access-key",
+			Usage:  "aws access key",
+			EnvVar: "PLUGIN_ACCESS_KEY,AWS_ACCESS_KEY_ID",
+		},
+		cli.StringFlag{
+			Name:   "secret-key",
+			Usage:  "aws secret key",
+			EnvVar: "PLUGIN_SECRET_KEY,AWS_SECRET_ACCESS_KEY",
+		},
+		cli.StringFlag{
+			Name:   "bucket",
+			Usage:  "aws bucket",
+			Value:  "us-east-1",
+			EnvVar: "PLUGIN_BUCKET",
+		},
+		cli.StringFlag{
+			Name:   "region",
+			Usage:  "aws region",
+			Value:  "us-east-1",
+			EnvVar: "PLUGIN_REGION",
+		},
+		cli.StringFlag{
+			Name:   "acl",
+			Usage:  "upload files with acl",
+			Value:  "private",
+			EnvVar: "PLUGIN_ACL",
+		},
+		cli.StringFlag{
+			Name:   "source",
+			Usage:  "upload files from source folder",
+			EnvVar: "PLUGIN_SOURCE",
+		},
+		cli.StringFlag{
+			Name:   "target",
+			Usage:  "upload files to target folder",
+			EnvVar: "PLUGIN_TARGET",
+		},
+		cli.BoolFlag{
+			Name:   "recursive",
+			Usage:  "upload files recursively",
+			EnvVar: "PLUGIN_RECURSIVE",
+		},
+		cli.StringSliceFlag{
+			Name:   "exclude",
+			Usage:  "ignore files matching exclude pattern",
+			EnvVar: "PLUGIN_EXCLUDE",
+		},
+		cli.BoolFlag{
+			Name:   "dry-run",
+			Usage:  "dry run for debug purposes",
+			EnvVar: "PLUGIN_DRY_RUN",
+		},
 	}
 
-	// make sure a default region is set
-	if len(vargs.Region) == 0 {
-		vargs.Region = "us-east-1"
-	}
-
-	// make sure a default access is set
-	// let's be conservative and assume private
-	if len(vargs.Access) == 0 {
-		vargs.Access = "private"
-	}
-
-	// if the target starts with a "/" we need
-	// to remove it, otherwise we might adding
-	// a 3rd slash to s3://
-	if strings.HasPrefix(vargs.Target, "/") {
-		vargs.Target = vargs.Target[1:]
-	}
-
-	cmd := command(vargs)
-	cmd.Env = os.Environ()
-	if len(vargs.Key) > 0 {
-		cmd.Env = append(cmd.Env, "AWS_ACCESS_KEY_ID="+vargs.Key)
-	}
-	if len(vargs.Secret) > 0 {
-		cmd.Env = append(cmd.Env, "AWS_SECRET_ACCESS_KEY="+vargs.Secret)
-	}
-	cmd.Dir = workspace.Path
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	trace(cmd)
-
-	// run the command and exit if failed.
-	err := cmd.Run()
-	if err != nil {
-		os.Exit(1)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
 	}
 }
 
-// command is a helper function that returns the command
-// and arguments to upload to aws from the command line.
-func command(s S3) *exec.Cmd {
-
-	// remote path S3 uri
-	path := fmt.Sprintf("s3://%s/%s", s.Bucket, s.Target)
-
-	// command line args
-	args := []string{
-		"s3",
-		"cp",
-		s.Source,
-		path,
-		"--recursive",
-		"--acl",
-		s.Access,
-		"--region",
-		s.Region,
+func run(c *cli.Context) error {
+	plugin := Plugin{
+		Key:       c.String("access-key"),
+		Secret:    c.String("secret-key"),
+		Bucket:    c.String("bucket"),
+		Region:    c.String("region"),
+		Access:    c.String("acl"),
+		Source:    c.String("source"),
+		Target:    c.String("target"),
+		Recursive: c.Bool("recursive"),
+		Exclude:   c.StringSlice("exclude"),
+		DryRun:    c.Bool("dry-run"),
 	}
 
-	// if not recursive, remove from the
-	// above arguments.
-	if !s.Recursive {
-		args = append(args[:4], args[4+1:]...)
+	// normalize the target URL
+	if strings.HasPrefix(plugin.Target, "/") {
+		plugin.Target = plugin.Target[1:]
 	}
 
-	for i := 0; i < len(s.Include); i++ {
-		args = append(args, "--include", s.Include[i])
-	}
-
-	for i := 0; i < len(s.Exclude); i++ {
-		args = append(args, "--exclude", s.Exclude[i])
-	}
-
-	return exec.Command("aws", args...)
-}
-
-// trace writes each command to standard error (preceded by a ‘$ ’) before it
-// is executed. Used for debugging your build.
-func trace(cmd *exec.Cmd) {
-	fmt.Println("$", strings.Join(cmd.Args, " "))
+	return plugin.Exec()
 }

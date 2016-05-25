@@ -1,12 +1,9 @@
 # Docker image for the Drone build runner
 #
 #     CGO_ENABLED=0 go build -a -tags netgo
-#     docker build --rm=true -t plugins/drone-s3 .
+#     docker build --rm=true -t plugins/s3 .
 
-FROM gliderlabs/alpine:3.1
-RUN apk add --update \
-	python \
-	py-pip \
-	&& pip install awscli
+FROM alpine:3.1
+RUN apk update && apk add ca-certificates mailcap && rm -rf /var/cache/apk/*
 ADD drone-s3 /bin/
 ENTRYPOINT ["/bin/drone-s3"]
