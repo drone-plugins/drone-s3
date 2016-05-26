@@ -1,6 +1,6 @@
 Use the S3 plugin to upload files and build artifacts to an S3 bucket. The following parameters are used to configure this plugin:
 
-* **endpoint** - the endpoint for the bucket (optional)
+* **endpoint** - custom endpoint URL (optional, to use a S3 compatible non-Amazon service)
 * **access_key** - amazon key (optional)
 * **secret_key** - amazon secret key (optional)
 * **bucket** - bucket name
