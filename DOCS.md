@@ -1,5 +1,6 @@
 Use the S3 plugin to upload files and build artifacts to an S3 bucket. The following parameters are used to configure this plugin:
 
+* **endpoint** - the endpoint for the bucket (optional)
 * **access_key** - amazon key (optional)
 * **secret_key** - amazon secret key (optional)
 * **bucket** - bucket name
@@ -8,6 +9,7 @@ Use the S3 plugin to upload files and build artifacts to an S3 bucket. The follo
 * **source** - source location of the files, using a glob matching pattern
 * **target** - target location of files in the bucket
 * **exclude** - glob exclusion patterns
+* **path_style** - whether path style URLs should be used (true for minio, false for aws)
 
 
 The following is a sample S3 configuration in your .drone.yml file:
