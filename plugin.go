@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"mime"
 	"os"
 	"path/filepath"
@@ -83,16 +82,14 @@ func (p *Plugin) Exec() error {
 	log.WithFields(log.Fields{
 		"region":   p.Region,
 		"endpoint": p.Endpoint,
-	}).Info("Attempting connection")
-
-	err := hasBucketConnection(client, p.Bucket)
-
-	if err != nil {
-		return err
-	}
+		"bucket":   p.Bucket,
+	}).Info("Attempting to upload")
 
 	matches, err := matches(p.Source, p.Exclude)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Could not match files")
 		return err
 	}
 
@@ -133,6 +130,10 @@ func (p *Plugin) Exec() error {
 
 		f, err := os.Open(match)
 		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+				"file":  match,
+			}).Error("Problem opening file")
 			return err
 		}
 		defer f.Close()
@@ -156,40 +157,6 @@ func (p *Plugin) Exec() error {
 			return err
 		}
 		f.Close()
-	}
-
-	return nil
-}
-
-func hasBucketConnection(client *s3.S3, name string) error {
-	resp, err := client.ListBuckets(&s3.ListBucketsInput{})
-
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Error when attempting to list buckets")
-		return err
-	}
-
-	var uploadBucket *s3.Bucket
-
-	for _, bucket := range resp.Buckets {
-		if *bucket.Name == name {
-			uploadBucket = bucket
-			break
-		}
-	}
-
-	if uploadBucket == nil {
-		log.WithFields(log.Fields{
-			"name": name,
-		}).Error("Could not find bucket")
-		return errors.New("Could not find bucket")
-	} else {
-		log.WithFields(log.Fields{
-			"name":    *uploadBucket.Name,
-			"created": uploadBucket.CreationDate,
-		}).Info("Found bucket")
 	}
 
 	return nil
@@ -242,63 +209,3 @@ func contentType(path string) string {
 	}
 	return typ
 }
-
-// func (p *Plugin) execOld() error {
-//
-// 	cmd := p.toCommand()
-// 	cmd.Env = os.Environ()
-// 	if len(p.Key) > 0 {
-// 		cmd.Env = append(cmd.Env, "AWS_ACCESS_KEY_ID="+p.Key)
-// 	}
-// 	if len(p.Secret) > 0 {
-// 		cmd.Env = append(cmd.Env, "AWS_SECRET_ACCESS_KEY="+p.Secret)
-// 	}
-// 	cmd.Stdout = os.Stdout
-// 	cmd.Stderr = os.Stderr
-// 	trace(cmd)
-//
-// 	// run the command and exit if failed.
-// 	return cmd.Run()
-// }
-
-// toCommand is a helper function that returns the command and arguments to
-// upload to aws from the command line.
-// func (p *Plugin) toCommand() *exec.Cmd {
-//
-// 	// remote path S3 uri
-// 	path := fmt.Sprintf("s3://%s/%s", p.Bucket, p.Target)
-//
-// 	// command line args
-// 	args := []string{
-// 		"s3",
-// 		"cp",
-// 		p.Source,
-// 		path,
-// 		"--recursive",
-// 		"--acl",
-// 		p.Access,
-// 		"--region",
-// 		p.Region,
-// 	}
-//
-// 	// if not recursive, remove from the above arguments.
-// 	if !p.Recursive {
-// 		args = append(args[:4], args[4+1:]...)
-// 	}
-//
-// 	for i := 0; i < len(p.Include); i++ {
-// 		args = append(args, "--include", p.Include[i])
-// 	}
-//
-// 	for i := 0; i < len(p.Exclude); i++ {
-// 		args = append(args, "--exclude", p.Exclude[i])
-// 	}
-//
-// 	return exec.Command("aws", args...)
-// }
-
-// trace writes each command to standard error (preceded by a ‘+ ’) before it
-// is executed. Used for debugging your build.
-// func trace(cmd *exec.Cmd) {
-// 	fmt.Println("+", strings.Join(cmd.Args, " "))
-// }
