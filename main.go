@@ -20,6 +20,11 @@ func main() {
 	app.Flags = []cli.Flag{
 
 		cli.StringFlag{
+			Name:   "endpoint",
+			Usage:  "endpoint for the s3 connection",
+			EnvVar: "PLUGIN_ENDPOINT",
+		},
+		cli.StringFlag{
 			Name:   "access-key",
 			Usage:  "aws access key",
 			EnvVar: "PLUGIN_ACCESS_KEY,AWS_ACCESS_KEY_ID",
@@ -72,6 +77,11 @@ func main() {
 			Usage:  "dry run for debug purposes",
 			EnvVar: "PLUGIN_DRY_RUN",
 		},
+		cli.BoolFlag{
+			Name:   "path-style",
+			Usage:  "use path style for bucket paths",
+			EnvVar: "PLUGIN_PATH_STYLE",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -81,6 +91,7 @@ func main() {
 
 func run(c *cli.Context) error {
 	plugin := Plugin{
+		Endpoint:  c.String("endpoint"),
 		Key:       c.String("access-key"),
 		Secret:    c.String("secret-key"),
 		Bucket:    c.String("bucket"),
@@ -90,6 +101,7 @@ func run(c *cli.Context) error {
 		Target:    c.String("target"),
 		Recursive: c.Bool("recursive"),
 		Exclude:   c.StringSlice("exclude"),
+		PathStyle: c.Bool("path-style"),
 		DryRun:    c.Bool("dry-run"),
 	}
 
