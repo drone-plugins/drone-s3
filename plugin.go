@@ -8,7 +8,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mattn/go-zglob"
@@ -71,7 +70,6 @@ type Plugin struct {
 func (p *Plugin) Exec() error {
 	// create the client
 	client := s3.New(session.New(), &aws.Config{
-		Credentials:      credentials.NewStaticCredentials(p.Key, p.Secret, ""),
 		Region:           aws.String(p.Region),
 		Endpoint:         &p.Endpoint,
 		DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
