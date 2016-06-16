@@ -69,11 +69,6 @@ type Plugin struct {
 // Exec runs the plugin
 func (p *Plugin) Exec() error {
 	// create the client
-	if p.Key != "" && p.Secret != "" {
-		os.Setenv("AWS_ACCESS_KEY_ID", p.Key)
-		os.Setenv("AWS_SECRET_ACCESS_KEY", p.Secret)
-
-	}
 	client := s3.New(session.New(), &aws.Config{
 		Region:           aws.String(p.Region),
 		Endpoint:         &p.Endpoint,
