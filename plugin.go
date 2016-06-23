@@ -58,7 +58,6 @@ type Plugin struct {
 	Recursive bool
 
 	YamlVerified     bool
-	SkipYamlVerified bool
 
 	// Exclude files matching this pattern.
 	Exclude []string
