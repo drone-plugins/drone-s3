@@ -85,13 +85,12 @@ func (p *Plugin) Exec() error {
 	//Allowing to use the instance role or provide a key and secret
 	if p.Key != "" && p.Secret != "" {
 		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
-	} else if p.YamlVerified != true || p.YamlVerified != true {
+	} else if p.YamlVerified != true {
 		log.WithFields(log.Fields{
-			"yamlVerified":    p.YamlVerified,
-			"skipYamlVerfied": p.SkipYamlVerified,
-		}).Error("When using instance role you must have the yaml verified or explicitly skip it")
+			"yamlVerified": p.YamlVerified,
+		}).Error("When using instance role you must have the yaml verified")
 
-		return errors.New("Security issue: When using instance role you must have the yaml verified or explicitly skip it")
+		return errors.New("Security issue: When using instance role you must have the yaml verified")
 	}
 	client := s3.New(session.New(), conf)
 
