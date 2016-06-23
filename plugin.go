@@ -67,22 +67,20 @@ type Plugin struct {
 	DryRun bool
 }
 
-
-
 func (p *Plugin) client() *s3.S3 {
 
 	// Use key and secret if provided otherwise fall back to ec2 instance profile
 	if p.Key != "" && p.Secret != "" {
 		return s3.New(session.New(), &aws.Config{
-			Credentials: credentials.NewStaticCredentials(p.Key, p.Secret, ""),
-			Region:      aws.String(p.Region),
+			Credentials:      credentials.NewStaticCredentials(p.Key, p.Secret, ""),
+			Region:           aws.String(p.Region),
 			Endpoint:         &p.Endpoint,
 			DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
 			S3ForcePathStyle: aws.Bool(p.PathStyle),
 		})
 	} else {
 		return s3.New(session.New(), &aws.Config{
-			Region: aws.String(p.Region),
+			Region:           aws.String(p.Region),
 			Endpoint:         &p.Endpoint,
 			DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
 			S3ForcePathStyle: aws.Bool(p.PathStyle),
@@ -90,12 +88,11 @@ func (p *Plugin) client() *s3.S3 {
 	}
 }
 
-
 // Exec runs the plugin
 func (p *Plugin) Exec() error {
 	// create the client
 
-	client := p.client();
+	client := p.client()
 
 	// find the bucket
 	log.WithFields(log.Fields{
@@ -103,7 +100,6 @@ func (p *Plugin) Exec() error {
 		"endpoint": p.Endpoint,
 		"bucket":   p.Bucket,
 	}).Info("Attempting to upload")
-
 
 	matches, err := matches(p.Source, p.Exclude)
 	if err != nil {
