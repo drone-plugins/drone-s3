@@ -82,7 +82,7 @@ func main() {
 			Usage:  "use path style for bucket paths",
 			EnvVar: "PLUGIN_PATH_STYLE",
 		},
-		cli.BoolFlag{
+		cli.BoolTFlag{
 			Name:   "yaml-verified",
 			Usage:  "Ensure the yaml was signed",
 			EnvVar: "DRONE_YAML_VERIFIED",
