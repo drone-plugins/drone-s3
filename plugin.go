@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"errors"
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -70,32 +71,29 @@ type Plugin struct {
 	DryRun bool
 }
 
-func (p *Plugin) client() *s3.S3 {
-
-	// Use key and secret if provided otherwise fall back to ec2 instance profile
-	if p.Key != "" && p.Secret != "" && (p.YamlVerified || p.SkipYamlVerified) {
-		return s3.New(session.New(), &aws.Config{
-			Credentials:      credentials.NewStaticCredentials(p.Key, p.Secret, ""),
-			Region:           aws.String(p.Region),
-			Endpoint:         &p.Endpoint,
-			DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
-			S3ForcePathStyle: aws.Bool(p.PathStyle),
-		})
-	} else {
-		return s3.New(session.New(), &aws.Config{
-			Region:           aws.String(p.Region),
-			Endpoint:         &p.Endpoint,
-			DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
-			S3ForcePathStyle: aws.Bool(p.PathStyle),
-		})
-	}
-}
-
 // Exec runs the plugin
 func (p *Plugin) Exec() error {
-	// create the client
 
-	client := p.client()
+	// create the client
+	conf := &aws.Config{
+		Region:           aws.String(p.Region),
+		Endpoint:         &p.Endpoint,
+		DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
+		S3ForcePathStyle: aws.Bool(p.PathStyle),
+	}
+
+	//Allowing to use the instance role or provide a key and secret
+	if p.Key != "" && p.Secret != "" {
+		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
+	} else if p.YamlVerified != true || p.YamlVerified != true {
+		log.WithFields(log.Fields{
+			"yamlVerified":    p.YamlVerified,
+			"skipYamlVerfied": p.SkipYamlVerified,
+		}).Error("When using instance role you must have the yaml verified or explicitly skip it")
+
+		return errors.New("Security issue: When using instance role you must have the yaml verified or explicitly skip it")
+	}
+	client := s3.New(session.New(), conf)
 
 	// find the bucket
 	log.WithFields(log.Fields{
