@@ -108,7 +108,7 @@ func run(c *cli.Context) error {
 		Exclude:      c.StringSlice("exclude"),
 		PathStyle:    c.Bool("path-style"),
 		DryRun:       c.Bool("dry-run"),
-		YamlVerified: c.Bool("yaml-verified"),
+		YamlVerified: c.BoolT("yaml-verified"),
 	}
 
 	// normalize the target URL
