@@ -10,6 +10,7 @@ Use the S3 plugin to upload files and build artifacts to an S3 bucket. The follo
 * **target** - target location of files in the bucket
 * **exclude** - glob exclusion patterns
 * **path_style** - whether path style URLs should be used (true for minio, false for aws)
+* **skip_yaml_verified** - when using the instance role instead of key and secret you must have the yaml file verified.  This allows skipping on trusted repos
 
 
 The following is a sample S3 configuration in your .drone.yml file:
@@ -22,6 +23,7 @@ publish:
     bucket: "my-bucket-name"
     access_key: "970d28f4dd477bc184fbd10b376de753"
     secret_key: "9c5785d3ece6a9cdefa42eb99b58986f9095ff1c"
+    skip_yaml_verified: true
     source: public/**/*
     target: /target/location
     exclude:

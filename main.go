@@ -82,6 +82,16 @@ func main() {
 			Usage:  "use path style for bucket paths",
 			EnvVar: "PLUGIN_PATH_STYLE",
 		},
+		cli.BoolFlag{
+			Name:   "yaml-verified",
+			Usage:  "Ensure the yaml was signed",
+			EnvVar: "DRONE_YAML_VERIFIED",
+		},
+		cli.BoolFlag{
+			Name:   "skip-yaml-verified",
+			Usage:  "Skip yaml verification",
+			EnvVar: "PLUGIN_SKIP_YAML_VERIFIED",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -91,18 +101,20 @@ func main() {
 
 func run(c *cli.Context) error {
 	plugin := Plugin{
-		Endpoint:  c.String("endpoint"),
-		Key:       c.String("access-key"),
-		Secret:    c.String("secret-key"),
-		Bucket:    c.String("bucket"),
-		Region:    c.String("region"),
-		Access:    c.String("acl"),
-		Source:    c.String("source"),
-		Target:    c.String("target"),
-		Recursive: c.Bool("recursive"),
-		Exclude:   c.StringSlice("exclude"),
-		PathStyle: c.Bool("path-style"),
-		DryRun:    c.Bool("dry-run"),
+		Endpoint:         c.String("endpoint"),
+		Key:              c.String("access-key"),
+		Secret:           c.String("secret-key"),
+		Bucket:           c.String("bucket"),
+		Region:           c.String("region"),
+		Access:           c.String("acl"),
+		Source:           c.String("source"),
+		Target:           c.String("target"),
+		Recursive:        c.Bool("recursive"),
+		Exclude:          c.StringSlice("exclude"),
+		PathStyle:        c.Bool("path-style"),
+		DryRun:           c.Bool("dry-run"),
+		YamlVerified:     c.Bool("yaml-verified"),
+		SkipYamlVerified: c.Bool("skip-yaml-verified"),
 	}
 
 	// normalize the target URL

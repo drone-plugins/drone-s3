@@ -56,6 +56,9 @@ type Plugin struct {
 	// Recursive uploads
 	Recursive bool
 
+	YamlVerified     bool
+	SkipYamlVerified bool
+
 	// Exclude files matching this pattern.
 	Exclude []string
 
@@ -70,7 +73,7 @@ type Plugin struct {
 func (p *Plugin) client() *s3.S3 {
 
 	// Use key and secret if provided otherwise fall back to ec2 instance profile
-	if p.Key != "" && p.Secret != "" {
+	if p.Key != "" && p.Secret != "" && (p.YamlVerified || p.SkipYamlVerified) {
 		return s3.New(session.New(), &aws.Config{
 			Credentials:      credentials.NewStaticCredentials(p.Key, p.Secret, ""),
 			Region:           aws.String(p.Region),
