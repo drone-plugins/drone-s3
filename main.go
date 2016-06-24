@@ -82,6 +82,11 @@ func main() {
 			Usage:  "use path style for bucket paths",
 			EnvVar: "PLUGIN_PATH_STYLE",
 		},
+		cli.BoolFlag{
+			Name:   "compress",
+			Usage:  "prior to upload, compress files and use gzip content-encoding",
+			EnvVar: "PLUGIN_COMPRESS",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -103,6 +108,7 @@ func run(c *cli.Context) error {
 		Exclude:   c.StringSlice("exclude"),
 		PathStyle: c.Bool("path-style"),
 		DryRun:    c.Bool("dry-run"),
+		Compress:  c.Bool("compress"),
 	}
 
 	// normalize the target URL

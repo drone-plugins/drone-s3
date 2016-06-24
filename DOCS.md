@@ -10,6 +10,7 @@ Use the S3 plugin to upload files and build artifacts to an S3 bucket. The follo
 * **target** - target location of files in the bucket
 * **exclude** - glob exclusion patterns
 * **path_style** - whether path style URLs should be used (true for minio, false for aws)
+* **compress** - prior to upload, compress files and use gzip content-encoding
 
 
 The following is a sample S3 configuration in your .drone.yml file:
@@ -26,4 +27,5 @@ publish:
     target: /target/location
     exclude:
       - **/*.xml
+    compress: false
 ```

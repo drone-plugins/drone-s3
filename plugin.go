@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
+	"io"
 	"mime"
 	"os"
 	"path/filepath"
@@ -65,6 +68,8 @@ type Plugin struct {
 	PathStyle bool
 	// Dry run without uploading/
 	DryRun bool
+	// Compress objects and upload with Content-Encoding: gzip
+	Compress bool
 }
 
 // Exec runs the plugin
@@ -138,13 +143,37 @@ func (p *Plugin) Exec() error {
 		}
 		defer f.Close()
 
-		_, err = client.PutObject(&s3.PutObjectInput{
-			Body:        f,
+		//prepare upload
+		input := &s3.PutObjectInput{
 			Bucket:      &(p.Bucket),
 			Key:         &target,
 			ACL:         &(p.Access),
 			ContentType: &content,
-		})
+		}
+
+		//optionally compress
+		if p.Compress {
+			//currently buffers entire file into memory
+			//TODO: convert to on-demand gzip
+			b := bytes.Buffer{}
+			gw := gzip.NewWriter(&b)
+			if _, err := io.Copy(gw, f); err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+					"file":  match,
+				}).Error("Problem gzipping file")
+				return err
+			}
+			gw.Close()
+			input.Body = bytes.NewReader(b.Bytes())
+			//set encoding
+			input.ContentEncoding = aws.String("gzip")
+		} else {
+			input.Body = f
+		}
+
+		//upload
+		_, err = client.PutObject(input)
 
 		if err != nil {
 			log.WithFields(log.Fields{
