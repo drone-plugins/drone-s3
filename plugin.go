@@ -188,28 +188,6 @@ func (p *Plugin) Exec() error {
 	return nil
 }
 
-//gzipReadSeeker implements Seek over gzip.Reader
-type gzipReadSeeker struct {
-	rs io.ReadSeeker
-	z  *gzip.Reader
-}
-
-func (grs *gzipReadSeeker) Read(p []byte) (n int, err error) {
-	return grs.z.Read(p)
-}
-
-func (grs *gzipReadSeeker) Seek(offset int64, whence int) (int64, error) {
-	//only zero (reset) seeks are supported, in this case, this should be fine
-	//since AWS will rarely seek mid-file
-	if offset == 0 && whence == 0 {
-		if err := grs.z.Reset(grs.rs); err != nil {
-			return 0, err
-		}
-		return grs.rs.Seek(0, 0)
-	}
-	return 0, errors.New("Non-zero seek not supported")
-}
-
 // matches is a helper function that returns a list of all files matching the
 // included Glob pattern, while excluding all files that matche the exclusion
 // Glob pattners.
@@ -256,4 +234,26 @@ func contentType(path string) string {
 		typ = "application/octet-stream"
 	}
 	return typ
+}
+
+//gzipReadSeeker implements Seek over gzip.Reader
+type gzipReadSeeker struct {
+	rs io.ReadSeeker
+	z  *gzip.Reader
+}
+
+func (grs *gzipReadSeeker) Read(p []byte) (n int, err error) {
+	return grs.z.Read(p)
+}
+
+func (grs *gzipReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	//only zero (reset) seeks are supported, in this case, this should be fine
+	//since AWS will rarely seek mid-file
+	if offset == 0 && whence == 0 {
+		if err := grs.z.Reset(grs.rs); err != nil {
+			return 0, err
+		}
+		return grs.rs.Seek(0, 0)
+	}
+	return 0, errors.New("Non-zero seek not supported")
 }
