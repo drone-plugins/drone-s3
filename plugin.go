@@ -1,6 +1,9 @@
 package main
 
 import (
+	"compress/gzip"
+	"errors"
+	"io"
 	"mime"
 	"os"
 	"path/filepath"
@@ -65,6 +68,8 @@ type Plugin struct {
 	PathStyle bool
 	// Dry run without uploading/
 	DryRun bool
+	// Compress objects and upload with Content-Encoding: gzip
+	Compress bool
 }
 
 // Exec runs the plugin
@@ -138,13 +143,34 @@ func (p *Plugin) Exec() error {
 		}
 		defer f.Close()
 
-		_, err = client.PutObject(&s3.PutObjectInput{
-			Body:        f,
+		//prepare upload
+		input := &s3.PutObjectInput{
 			Bucket:      &(p.Bucket),
 			Key:         &target,
 			ACL:         &(p.Access),
 			ContentType: &content,
-		})
+		}
+
+		//optionally compress
+		if p.Compress {
+			gr, err := gzip.NewReader(f)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+					"file":  match,
+				}).Error("Problem gzipping file")
+				return err
+			}
+			//wrap with gzip
+			input.Body = &gzipReadSeeker{f, gr}
+			//set encoding
+			input.ContentEncoding = aws.String("gzip")
+		} else {
+			input.Body = f
+		}
+
+		//upload
+		_, err = client.PutObject(input)
 
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -160,6 +186,28 @@ func (p *Plugin) Exec() error {
 	}
 
 	return nil
+}
+
+//gzipReadSeeker implements Seek over gzip.Reader
+type gzipReadSeeker struct {
+	rs io.ReadSeeker
+	z  *gzip.Reader
+}
+
+func (grs *gzipReadSeeker) Read(p []byte) (n int, err error) {
+	return grs.z.Read(p)
+}
+
+func (grs *gzipReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	//only zero (reset) seeks are supported, in this case, this should be fine
+	//since AWS will rarely seek mid-file
+	if offset == 0 && whence == 0 {
+		if err := grs.z.Reset(grs.rs); err != nil {
+			return 0, err
+		}
+		return grs.rs.Seek(0, 0)
+	}
+	return 0, errors.New("Non-zero seek not supported")
 }
 
 // matches is a helper function that returns a list of all files matching the
