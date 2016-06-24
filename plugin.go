@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bytes"
 	"compress/gzip"
-	"errors"
 	"io"
 	"mime"
 	"os"
@@ -153,16 +153,19 @@ func (p *Plugin) Exec() error {
 
 		//optionally compress
 		if p.Compress {
-			gr, err := gzip.NewReader(f)
-			if err != nil {
+			//currently buffers entire file into memory
+			//TODO: convert to on-demand gzip
+			b := bytes.Buffer{}
+			gw := gzip.NewWriter(&b)
+			if _, err := io.Copy(gw, f); err != nil {
 				log.WithFields(log.Fields{
 					"error": err,
 					"file":  match,
 				}).Error("Problem gzipping file")
 				return err
 			}
-			//wrap with gzip
-			input.Body = &gzipReadSeeker{f, gr}
+			gw.Close()
+			input.Body = bytes.NewReader(b.Bytes())
 			//set encoding
 			input.ContentEncoding = aws.String("gzip")
 		} else {
@@ -234,26 +237,4 @@ func contentType(path string) string {
 		typ = "application/octet-stream"
 	}
 	return typ
-}
-
-//gzipReadSeeker implements Seek over gzip.Reader
-type gzipReadSeeker struct {
-	rs io.ReadSeeker
-	z  *gzip.Reader
-}
-
-func (grs *gzipReadSeeker) Read(p []byte) (n int, err error) {
-	return grs.z.Read(p)
-}
-
-func (grs *gzipReadSeeker) Seek(offset int64, whence int) (int64, error) {
-	//only zero (reset) seeks are supported, in this case, this should be fine
-	//since AWS will rarely seek mid-file
-	if offset == 0 && whence == 0 {
-		if err := grs.z.Reset(grs.rs); err != nil {
-			return 0, err
-		}
-		return grs.rs.Seek(0, 0)
-	}
-	return 0, errors.New("Non-zero seek not supported")
 }
