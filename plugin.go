@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"errors"
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -56,6 +57,8 @@ type Plugin struct {
 	// Recursive uploads
 	Recursive bool
 
+	YamlVerified     bool
+
 	// Exclude files matching this pattern.
 	Exclude []string
 
@@ -69,14 +72,22 @@ type Plugin struct {
 
 // Exec runs the plugin
 func (p *Plugin) Exec() error {
+
 	// create the client
-	client := s3.New(session.New(), &aws.Config{
-		Credentials:      credentials.NewStaticCredentials(p.Key, p.Secret, ""),
+	conf := &aws.Config{
 		Region:           aws.String(p.Region),
 		Endpoint:         &p.Endpoint,
 		DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
 		S3ForcePathStyle: aws.Bool(p.PathStyle),
-	})
+	}
+
+	//Allowing to use the instance role or provide a key and secret
+	if p.Key != "" && p.Secret != "" {
+		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
+	} else if p.YamlVerified != true {
+		return errors.New("Security issue: When using instance role you must have the yaml verified")
+	}
+	client := s3.New(session.New(), conf)
 
 	// find the bucket
 	log.WithFields(log.Fields{
