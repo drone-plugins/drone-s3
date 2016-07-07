@@ -54,10 +54,13 @@ type Plugin struct {
 	Source string
 	Target string
 
+	// Strip the prefix from the target path
+	StripPrefix string
+
 	// Recursive uploads
 	Recursive bool
 
-	YamlVerified     bool
+	YamlVerified bool
 
 	// Exclude files matching this pattern.
 	Exclude []string
@@ -116,7 +119,7 @@ func (p *Plugin) Exec() error {
 			continue
 		}
 
-		target := filepath.Join(p.Target, match)
+		target := filepath.Join(p.Target, strings.TrimPrefix(match, p.StripPrefix))
 		if !strings.HasPrefix(target, "/") {
 			target = "/" + target
 		}

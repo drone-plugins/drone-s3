@@ -62,6 +62,11 @@ func main() {
 			Usage:  "upload files to target folder",
 			EnvVar: "PLUGIN_TARGET",
 		},
+		cli.StringFlag{
+			Name:   "strip-prefix",
+			Usage:  "strip the prefix from the target",
+			EnvVar: "PLUGIN_STRIP_PREFIX",
+		},
 		cli.BoolFlag{
 			Name:   "recursive",
 			Usage:  "upload files recursively",
@@ -104,6 +109,7 @@ func run(c *cli.Context) error {
 		Access:       c.String("acl"),
 		Source:       c.String("source"),
 		Target:       c.String("target"),
+		StripPrefix:  c.String("strip-prefix"),
 		Recursive:    c.Bool("recursive"),
 		Exclude:      c.StringSlice("exclude"),
 		PathStyle:    c.Bool("path-style"),
