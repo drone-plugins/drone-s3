@@ -22,6 +22,10 @@ type Plugin struct {
 	Secret   string
 	Bucket   string
 
+	// AES256
+	// aws:kms
+	Encryption string
+
 	// us-east-1
 	// us-west-1
 	// us-west-2
@@ -153,11 +157,12 @@ func (p *Plugin) Exec() error {
 		defer f.Close()
 
 		_, err = client.PutObject(&s3.PutObjectInput{
-			Body:        f,
-			Bucket:      &(p.Bucket),
-			Key:         &target,
-			ACL:         &(p.Access),
-			ContentType: &content,
+			Body:                 f,
+			Bucket:               &(p.Bucket),
+			Key:                  &target,
+			ACL:                  &(p.Access),
+			ContentType:          &content,
+			ServerSideEncryption: &(p.Encryption),
 		})
 
 		if err != nil {

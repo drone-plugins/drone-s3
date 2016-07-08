@@ -77,6 +77,11 @@ func main() {
 			Usage:  "ignore files matching exclude pattern",
 			EnvVar: "PLUGIN_EXCLUDE",
 		},
+		cli.StringFlag{
+			Name:   "encryption",
+			Usage:  "server-side encryption algorithm, defaults to none",
+			EnvVar: "PLUGIN_ENCRYPTION",
+		},
 		cli.BoolFlag{
 			Name:   "dry-run",
 			Usage:  "dry run for debug purposes",
@@ -112,6 +117,7 @@ func run(c *cli.Context) error {
 		StripPrefix:  c.String("strip-prefix"),
 		Recursive:    c.Bool("recursive"),
 		Exclude:      c.StringSlice("exclude"),
+		Encryption:   c.String("encryption"),
 		PathStyle:    c.Bool("path-style"),
 		DryRun:       c.Bool("dry-run"),
 		YamlVerified: c.BoolT("yaml-verified"),
