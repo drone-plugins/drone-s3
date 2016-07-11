@@ -8,6 +8,7 @@ Use the S3 plugin to upload files and build artifacts to an S3 bucket. The follo
 * **source** - location of files to upload
 * **target** - target location of files in your S3 bucket
 * **recursive** - if true, recursively upload files
+* **encryption** - if provided, use server-side encryption (`AES256`,`aws:kms`, etc)
 * **include** - A list of include [filters](http://docs.aws.amazon.com/cli/latest/reference/s3/index.html#use-of-exclude-and-include-filters)
 * **exclude** - A list of exclude [filters](http://docs.aws.amazon.com/cli/latest/reference/s3/index.html#use-of-exclude-and-include-filters)
 
@@ -25,6 +26,7 @@ publish:
     source: files/to/archive
     target: /target/location
     recursive: true
+    encryption: AES256
     include:
       - *.txt
       - *.html

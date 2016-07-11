@@ -10,9 +10,10 @@ import (
 )
 
 type S3 struct {
-	Key    string `json:"access_key"`
-	Secret string `json:"secret_key"`
-	Bucket string `json:"bucket"`
+	Key        string `json:"access_key"`
+	Secret     string `json:"secret_key"`
+	Bucket     string `json:"bucket"`
+	Encryption string `json:"encryption"`
 
 	// us-east-1
 	// us-west-1
@@ -125,17 +126,18 @@ func command(s S3) *exec.Cmd {
 		"cp",
 		s.Source,
 		path,
-		"--recursive",
 		"--acl",
 		s.Access,
 		"--region",
 		s.Region,
 	}
 
-	// if not recursive, remove from the
-	// above arguments.
-	if !s.Recursive {
-		args = append(args[:4], args[4+1:]...)
+	if s.Encryption != "" {
+		args = append(args, "--sse", s.Encryption)
+	}
+
+	if s.Recursive {
+		args = append(args, "--recursive")
 	}
 
 	for i := 0; i < len(s.Include); i++ {
