@@ -22,8 +22,10 @@ type Plugin struct {
 	Secret   string
 	Bucket   string
 
-	// AES256
-	// aws:kms
+	// if not "", enable server-side encryption
+	// valid values are:
+	//     AES256
+	//     aws:kms
 	Encryption string
 
 	// us-east-1
@@ -156,14 +158,19 @@ func (p *Plugin) Exec() error {
 		}
 		defer f.Close()
 
-		_, err = client.PutObject(&s3.PutObjectInput{
-			Body:                 f,
-			Bucket:               &(p.Bucket),
-			Key:                  &target,
-			ACL:                  &(p.Access),
-			ContentType:          &content,
-			ServerSideEncryption: &(p.Encryption),
-		})
+		putObjectInput := &s3.PutObjectInput{
+			Body:        f,
+			Bucket:      &(p.Bucket),
+			Key:         &target,
+			ACL:         &(p.Access),
+			ContentType: &content,
+		}
+
+		if p.Encryption != "" {
+			putObjectInput.ServerSideEncryption = &(p.Encryption)
+		}
+
+		_, err = client.PutObject(putObjectInput)
 
 		if err != nil {
 			log.WithFields(log.Fields{
