@@ -1,0 +1,10 @@
+FROM armhfbuild/alpine:3.4
+
+RUN apk update && \
+  apk add \
+    ca-certificates \
+    mailcap && \
+  rm -rf /var/cache/apk/*
+
+ADD drone-s3 /bin/
+ENTRYPOINT ["/bin/drone-s3"]
