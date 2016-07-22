@@ -2,15 +2,19 @@ workspace:
   base: /go
 
 pipeline:
-  build:
+  test:
     image: golang:1.6
+    environment:
+      - CGO_ENABLED=0
     commands:
-      - CGO_ENABLED=0 go build
+      - go vet
+      - go test -cover -coverprofile=coverage.out
+      - go build -ldflags "-s -w -X main.build=$DRONE_BUILD_NUMBER" -a -tags netgo
 
-  docker:
-    storage_driver: overlay
+  latest:
+    image: docker
     repo: plugins/s3
-    tag: [ "latest", "1.0", "1" ]
+    tags: [ "latest", "1.0", "1" ]
     when:
       branch: master
       event: push
