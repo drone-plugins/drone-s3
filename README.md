@@ -1,21 +1,21 @@
 # drone-s3
 
 [![Build Status](http://beta.drone.io/api/badges/drone-plugins/drone-s3/status.svg)](http://beta.drone.io/drone-plugins/drone-s3)
-[![Image Size](https://badge.imagelayers.io/plugins/drone-s3:latest.svg)](https://imagelayers.io/?images=plugins/drone-s3:latest 'Get your own badge on imagelayers.io')
+[![Go Doc](https://godoc.org/github.com/drone-plugins/drone-s3?status.svg)](http://godoc.org/github.com/drone-plugins/drone-s3)
+[![Go Report](https://goreportcard.com/badge/github.com/drone-plugins/drone-s3)](https://goreportcard.com/report/github.com/drone-plugins/drone-s3)
+[![Join the chat at https://gitter.im/drone/drone](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/drone/drone)
 
-Drone plugin to publish files and artifacts to Amazon S3. For the usage information and a listing of the available options please take a look at [the docs](DOCS.md).
+Drone plugin to publish files and artifacts to Amazon S3 or Minio. For the
+usage information and a listing of the available options please take a look at
+[the docs](DOCS.md).
 
 ## Build
 
 Build the binary with the following commands:
 
 ```
-export GO15VENDOREXPERIMENT=1
-export GOOS=linux
-export GOARCH=amd64
-export CGO_ENABLED=0
-
-go build -a -tags netgo
+go build
+go test
 ```
 
 ## Docker
@@ -23,10 +23,12 @@ go build -a -tags netgo
 Build the docker image with the following commands:
 
 ```
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo
 docker build --rm=true -t plugins/s3 .
 ```
 
-Please note incorrectly building the image for the correct x64 linux and with GCO disabled will result in an error when running the Docker image:
+Please note incorrectly building the image for the correct x64 linux and with
+GCO disabled will result in an error when running the Docker image:
 
 ```
 docker: Error response from daemon: Container command
@@ -35,16 +37,16 @@ docker: Error response from daemon: Container command
 
 ## Usage
 
-Build and publish from your current working directory:
+Execute from the working directory:
 
 ```
-docker run --rm                     \
-  -e PLUGIN_SOURCE=<source>         \
-  -e PLUGIN_TARGET=<target>         \
-  -e PLUGIN_BUCKET=<bucket>         \
-  -e AWS_ACCESS_KEY_ID=<token>      \
+docker run --rm \
+  -e PLUGIN_SOURCE=<source> \
+  -e PLUGIN_TARGET=<target> \
+  -e PLUGIN_BUCKET=<bucket> \
+  -e AWS_ACCESS_KEY_ID=<token> \
   -e AWS_SECRET_ACCESS_KEY=<secret> \
-  -v $(pwd):$(pwd)                  \
-  -w $(pwd)                         \
+  -v $(pwd):$(pwd) \
+  -w $(pwd) \
   plugins/s3 --dry-run
 ```
