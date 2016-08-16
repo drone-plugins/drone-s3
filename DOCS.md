@@ -1,4 +1,9 @@
-Use the S3 plugin to upload files and build artifacts to an S3 bucket. The following parameters are used to configure this plugin:
+Use this plugin to upload files and build artifacts to an S3 bucket or a Minio
+bucket.
+
+## Config
+
+The following parameters are used to configure the plugin:
 
 * **endpoint** - custom endpoint URL (optional, to use a S3 compatible non-Amazon service)
 * **access_key** - amazon key (optional)
@@ -13,11 +18,41 @@ Use the S3 plugin to upload files and build artifacts to an S3 bucket. The follo
 * **exclude** - glob exclusion patterns
 * **path_style** - whether path style URLs should be used (true for minio, false for aws)
 
+The following secret values can be set to configure the plugin.
 
-The following is a sample S3 configuration in your .drone.yml file:
+* **AWS_ACCESS_KEY_ID** - corresponds to **webhook**
+* **AWS_SECRET_ACCESS_KEY** - corresponds to **webhook**
+* **S3_BUCKET** - corresponds to **webhook**
+* **S3_REGION** - corresponds to **webhook**
+* **S3_ENDPOINT** - corresponds to **webhook**
+
+It is highly recommended to put the **AWS_ACCESS_KEY_ID** and
+**AWS_SECRET_ACCESS_KEY** into a secret so it is not exposed to users. This can
+be done using the drone-cli.
+
+```bash
+drone secret add --image=s3 \
+    octocat/hello-world AWS_ACCESS_KEY_ID <YOUR_ACCESS_KEY_ID>
+
+drone secret add --image=s3 \
+    octocat/hello-world AWS_SECRET_ACCESS_KEY <YOUR_SECRET_ACCESS_KEY>
+```
+
+Then sign the YAML file after all secrets are added.
+
+```bash
+drone sign octocat/hello-world
+```
+
+See [secrets](http://readme.drone.io/0.5/usage/secrets/) for additional
+information on secrets
+
+## Example
+
+Common example to upload to S3:
 
 ```yaml
-publish:
+pipeline:
   s3:
     acl: public-read
     region: "us-east-1"

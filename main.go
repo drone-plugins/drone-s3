@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -22,7 +22,7 @@ func main() {
 		cli.StringFlag{
 			Name:   "endpoint",
 			Usage:  "endpoint for the s3 connection",
-			EnvVar: "PLUGIN_ENDPOINT",
+			EnvVar: "PLUGIN_ENDPOINT,S3_ENDPOINT",
 		},
 		cli.StringFlag{
 			Name:   "access-key",
@@ -38,13 +38,13 @@ func main() {
 			Name:   "bucket",
 			Usage:  "aws bucket",
 			Value:  "us-east-1",
-			EnvVar: "PLUGIN_BUCKET",
+			EnvVar: "PLUGIN_BUCKET,S3_BUCKET",
 		},
 		cli.StringFlag{
 			Name:   "region",
 			Usage:  "aws region",
 			Value:  "us-east-1",
-			EnvVar: "PLUGIN_REGION",
+			EnvVar: "PLUGIN_REGION,S3_REGION",
 		},
 		cli.StringFlag{
 			Name:   "acl",
