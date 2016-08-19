@@ -31,10 +31,10 @@ It is highly recommended to put the **AWS_ACCESS_KEY_ID** and
 be done using the drone-cli.
 
 ```bash
-drone secret add --image=s3 \
+drone secret add --image=plugins/s3 \
     octocat/hello-world AWS_ACCESS_KEY_ID <YOUR_ACCESS_KEY_ID>
 
-drone secret add --image=s3 \
+drone secret add --image=plugins/s3 \
     octocat/hello-world AWS_SECRET_ACCESS_KEY <YOUR_SECRET_ACCESS_KEY>
 ```
 
@@ -54,6 +54,7 @@ Common example to upload to S3:
 ```yaml
 pipeline:
   s3:
+    image: plugins/s3
     acl: public-read
     region: "us-east-1"
     bucket: "my-bucket-name"
