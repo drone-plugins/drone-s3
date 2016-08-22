@@ -81,6 +81,10 @@ type Plugin struct {
 
 // Exec runs the plugin
 func (p *Plugin) Exec() error {
+	// normalize the target URL
+	if strings.HasPrefix(p.Target, "/") {
+		p.Target = p.Target[1:]
+	}
 
 	// create the client
 	conf := &aws.Config{
