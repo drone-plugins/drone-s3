@@ -1,24 +1,22 @@
 package main
 
 import (
-	"log"
 	"os"
-	"strings"
 
+	"github.com/Sirupsen/logrus"
+	"github.com/joho/godotenv"
 	"github.com/urfave/cli"
-	_ "github.com/joho/godotenv/autoload"
 )
 
 var version string // build number set at compile-time
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "s3 artifact plugin"
-	app.Usage = "s3 artifact plugin"
+	app.Name = "s3 plugin"
+	app.Usage = "s3 plugin"
 	app.Action = run
 	app.Version = version
 	app.Flags = []cli.Flag{
-
 		cli.StringFlag{
 			Name:   "endpoint",
 			Usage:  "endpoint for the s3 connection",
@@ -97,14 +95,22 @@ func main() {
 			Usage:  "Ensure the yaml was signed",
 			EnvVar: "DRONE_YAML_VERIFIED",
 		},
+		cli.StringFlag{
+			Name:  "env-file",
+			Usage: "source env file",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 }
 
 func run(c *cli.Context) error {
+	if c.String("env-file") != "" {
+		_ = godotenv.Load(c.String("env-file"))
+	}
+
 	plugin := Plugin{
 		Endpoint:     c.String("endpoint"),
 		Key:          c.String("access-key"),
@@ -121,11 +127,6 @@ func run(c *cli.Context) error {
 		PathStyle:    c.Bool("path-style"),
 		DryRun:       c.Bool("dry-run"),
 		YamlVerified: c.BoolT("yaml-verified"),
-	}
-
-	// normalize the target URL
-	if strings.HasPrefix(plugin.Target, "/") {
-		plugin.Target = plugin.Target[1:]
 	}
 
 	return plugin.Exec()
