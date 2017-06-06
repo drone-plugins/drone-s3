@@ -17,6 +17,7 @@ The following parameters are used to configure the plugin:
 * **strip_prefix** - strip the prefix from source path
 * **exclude** - glob exclusion patterns
 * **path_style** - whether path style URLs should be used (true for minio, false for aws)
+* **env_file** - environment file from which to load environment variables
 
 The following secret values can be set to configure the plugin.
 
