@@ -97,8 +97,8 @@ func main() {
 			EnvVar: "DRONE_YAML_VERIFIED",
 		},
 		cli.StringFlag{
-			Name:  "env-file",
-			Usage: "source env file",
+			Name:   "env-file",
+			Usage:  "source env file",
 			EnvVar: "PLUGIN_ENV_FILE",
 		},
 	}
