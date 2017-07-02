@@ -177,6 +177,12 @@
 			"path": "github.com/urfave/cli",
 			"revision": "d9021faab69f92295ef7061bd39e4a76dcbdef32",
 			"revisionTime": "2016-07-26T01:14:03Z"
+		},
+		{
+			"checksumSHA1": "fALlQNY1fM99NesfLJ50KguWsio=",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b",
+			"revisionTime": "2017-04-07T17:21:22Z"
 		}
 	],
 	"rootPath": "github.com/drone-plugins/drone-s3"

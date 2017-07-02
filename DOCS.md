@@ -17,6 +17,7 @@ The following parameters are used to configure the plugin:
 * **strip_prefix** - strip the prefix from source path
 * **exclude** - glob exclusion patterns
 * **path_style** - whether path style URLs should be used (true for minio, false for aws)
+* **content_types** - if provided, attempt finding the content-type for a file here first
 
 The following secret values can be set to configure the plugin.
 
@@ -46,6 +47,24 @@ drone sign octocat/hello-world
 
 See [secrets](http://readme.drone.io/0.5/usage/secrets/) for additional
 information on secrets
+
+### Specifying Content-Types
+
+drone-s3 will attempt matching the appropriate mimetype for each file to
+set the content-type header. If no mimetype is found for a file extension
+content-type header will be set to `application/octet-stream`.
+
+Manually setting the content-type per file extension or changing the default
+is possible when specifying `content_types`:
+
+```yaml
+...
+    content_types:
+      .svg: image/svg+xml
+      .ico: image/x-icon
+      default: image/*
+...
+```
 
 ## Example
 

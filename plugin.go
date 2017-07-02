@@ -77,6 +77,9 @@ type Plugin struct {
 	PathStyle bool
 	// Dry run without uploading/
 	DryRun bool
+
+	// Content-Type
+	ContentTypes map[string]string
 }
 
 // Exec runs the plugin
@@ -134,9 +137,8 @@ func (p *Plugin) Exec() error {
 			target = "/" + target
 		}
 
-		// amazon S3 has pretty crappy default content-type headers so this pluign
-		// attempts to provide a proper content-type.
-		content := contentType(match)
+		// Attempt to find the correct content-type
+		content := contentType(p, match)
 
 		// log file for debug purposes.
 		log.WithFields(log.Fields{
@@ -231,11 +233,27 @@ func matches(include string, exclude []string) ([]string, error) {
 // contentType is a helper function that returns the content type for the file
 // based on extension. If the file extension is unknown application/octet-stream
 // is returned.
-func contentType(path string) string {
+func contentType(p *Plugin, path string) string {
 	ext := filepath.Ext(path)
-	typ := mime.TypeByExtension(ext)
-	if typ == "" {
-		typ = "application/octet-stream"
+	var typ string
+
+	if ext != "" {
+		typ = p.ContentTypes[ext]
+		if typ != "" {
+			return typ
+		}
+
+		typ = mime.TypeByExtension(ext)
+		if typ != "" {
+			return typ
+		}
 	}
+
+	typ = p.ContentTypes["default"]
+	if typ != "" {
+		return typ
+	}
+
+	typ = "application/octet-stream"
 	return typ
 }
