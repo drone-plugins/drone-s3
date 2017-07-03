@@ -79,7 +79,7 @@ type Plugin struct {
 	DryRun bool
 
 	// Content-Type
-	ContentTypes map[string]string
+	ContentType map[string]string
 }
 
 // Exec runs the plugin
@@ -234,26 +234,23 @@ func matches(include string, exclude []string) ([]string, error) {
 // based on extension. If the file extension is unknown application/octet-stream
 // is returned.
 func contentType(p *Plugin, path string) string {
-	ext := filepath.Ext(path)
-	var typ string
+	fileExt := filepath.Ext(path)
 
-	if ext != "" {
-		typ = p.ContentTypes[ext]
-		if typ != "" {
-			return typ
-		}
-
-		typ = mime.TypeByExtension(ext)
-		if typ != "" {
-			return typ
+	var contentType string
+	for patternExt := range p.ContentType {
+		if patternExt == fileExt {
+			contentType = p.ContentType[patternExt]
+			break
 		}
 	}
 
-	typ = p.ContentTypes["default"]
-	if typ != "" {
-		return typ
+	if contentType == "" {
+		contentType = mime.TypeByExtension(fileExt)
 	}
 
-	typ = "application/octet-stream"
-	return typ
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	return contentType
 }

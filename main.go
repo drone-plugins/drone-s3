@@ -7,7 +7,6 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/joho/godotenv"
 	"github.com/urfave/cli"
-	"gopkg.in/yaml.v2"
 )
 
 var build = "0" // build number set at compile-time
@@ -101,10 +100,11 @@ func main() {
 			Name:  "env-file",
 			Usage: "source env file",
 		},
-		cli.StringFlag{
-			Name:   "content-types",
-			Usage:  "set content-types per file extension",
-			EnvVar: "PLUGIN_CONTENT_TYPES",
+		cli.GenericFlag{
+			Name:   "content-type",
+			Usage:  "content-type settings",
+			EnvVar: "PLUGIN_CONTENT_TYPE",
+			Value:  &StringMapFlag{},
 		},
 	}
 
@@ -134,16 +134,8 @@ func run(c *cli.Context) error {
 		PathStyle:    c.Bool("path-style"),
 		DryRun:       c.Bool("dry-run"),
 		YamlVerified: c.BoolT("yaml-verified"),
-		ContentTypes: convertToContentTypes(c.String("content-types")),
+		ContentType:  c.Generic("content-type").(*StringMapFlag).Get(),
 	}
 
 	return plugin.Exec()
-}
-
-func convertToContentTypes(s string) map[string]string {
-	var result map[string]string
-	if s != "" {
-		yaml.Unmarshal([]byte(s), &result)
-	}
-	return result
 }

@@ -17,7 +17,7 @@ The following parameters are used to configure the plugin:
 * **strip_prefix** - strip the prefix from source path
 * **exclude** - glob exclusion patterns
 * **path_style** - whether path style URLs should be used (true for minio, false for aws)
-* **content_types** - if provided, attempt finding the content-type for a file here first
+* **content_type** - override default mime-types to use this value
 
 The following secret values can be set to configure the plugin.
 
@@ -48,27 +48,7 @@ drone sign octocat/hello-world
 See [secrets](http://readme.drone.io/0.5/usage/secrets/) for additional
 information on secrets
 
-### Specifying Content-Types
-
-drone-s3 will attempt matching the appropriate mimetype for each file to
-set the content-type header. If no mimetype is found for a file extension
-content-type header will be set to `application/octet-stream`.
-
-Manually setting the content-type per file extension or changing the default
-is possible when specifying `content_types`:
-
-```yaml
-...
-    content_types:
-      .svg: image/svg+xml
-      .ico: image/x-icon
-      default: image/*
-...
-```
-
-## Example
-
-Common example to upload to S3:
+The following is a sample S3 configuration in your `.drone.yml` file:
 
 ```yaml
 pipeline:
@@ -86,3 +66,32 @@ pipeline:
     exclude:
       - **/*.xml
 ```
+
+The `acl` and `content_type` parameters can be passed as a string value to
+apply to all files, or as a map to apply to a subset of files.
+
+For example:
+
+```yaml
+pipeline:
+  s3:
+    acl:
+      "public/*": public-read
+      "private/*": private
+    content_type:
+      ".svg": image/svg+xml
+    region: "us-east-1"
+    bucket: "my-bucket.s3-website-us-east-1.amazonaws.com"
+    access_key: "970d28f4dd477bc184fbd10b376de753"
+    secret_key: "9c5785d3ece6a9cdefa42eb99b58986f9095ff1c"
+    source: folder/to/archive
+    target: /target/location
+```
+
+In the case of `acl` the key of the map is a glob. If there are no matches in
+your settings for a given file, the default is `"private"`.
+
+The `content_type` field the key is an extension including the leading dot
+`.`. If you want to set a content type for files with no extension, set the
+key to the empty string `""`. If there are no matches for the `content_type`
+of any file, one will automatically be determined for you.
