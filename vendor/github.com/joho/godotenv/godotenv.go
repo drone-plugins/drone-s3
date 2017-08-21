@@ -16,6 +16,7 @@ package godotenv
 import (
 	"bufio"
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -89,6 +90,34 @@ func Read(filenames ...string) (envMap map[string]string, err error) {
 	return
 }
 
+// Parse reads an env file from io.Reader, returning a map of keys and values.
+func Parse(r io.Reader) (envMap map[string]string, err error) {
+	envMap = make(map[string]string)
+
+	var lines []string
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	if err = scanner.Err(); err != nil {
+		return
+	}
+
+	for _, fullLine := range lines {
+		if !isIgnoredLine(fullLine) {
+			var key, value string
+			key, value, err = parseLine(fullLine)
+
+			if err != nil {
+				return
+			}
+			envMap[key] = value
+		}
+	}
+	return
+}
+
 // Exec loads env vars from the specified filenames (empty map falls back to default)
 // then executes the cmd specified.
 //
@@ -119,8 +148,15 @@ func loadFile(filename string, overload bool) error {
 		return err
 	}
 
+	currentEnv := map[string]bool{}
+	rawEnv := os.Environ()
+	for _, rawEnvLine := range rawEnv {
+		key := strings.Split(rawEnvLine, "=")[0]
+		currentEnv[key] = true
+	}
+
 	for key, value := range envMap {
-		if os.Getenv(key) == "" || overload {
+		if !currentEnv[key] || overload {
 			os.Setenv(key, value)
 		}
 	}
@@ -135,24 +171,7 @@ func readFile(filename string) (envMap map[string]string, err error) {
 	}
 	defer file.Close()
 
-	envMap = make(map[string]string)
-
-	var lines []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-
-	for _, fullLine := range lines {
-		if !isIgnoredLine(fullLine) {
-			key, value, err := parseLine(fullLine)
-
-			if err == nil {
-				envMap[key] = value
-			}
-		}
-	}
-	return
+	return Parse(file)
 }
 
 func parseLine(line string) (key string, value string, err error) {
@@ -206,18 +225,23 @@ func parseLine(line string) (key string, value string, err error) {
 
 	// Parse the value
 	value = splitString[1]
+
 	// trim
 	value = strings.Trim(value, " ")
 
 	// check if we've got quoted values
-	if strings.Count(value, "\"") == 2 || strings.Count(value, "'") == 2 {
-		// pull the quotes off the edges
-		value = strings.Trim(value, "\"'")
+	if value != "" {
+		first := string(value[0:1])
+		last := string(value[len(value)-1:])
+		if first == last && strings.ContainsAny(first, `"'`) {
+			// pull the quotes off the edges
+			value = strings.Trim(value, `"'`)
 
-		// expand quotes
-		value = strings.Replace(value, "\\\"", "\"", -1)
-		// expand newlines
-		value = strings.Replace(value, "\\n", "\n", -1)
+			// expand quotes
+			value = strings.Replace(value, `\"`, `"`, -1)
+			// expand newlines
+			value = strings.Replace(value, `\n`, "\n", -1)
+		}
 	}
 
 	return
