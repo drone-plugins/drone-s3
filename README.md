@@ -7,7 +7,7 @@
 
 Drone plugin to publish files and artifacts to Amazon S3 or Minio. For the
 usage information and a listing of the available options please take a look at
-[the docs](DOCS.md).
+[the docs](http://plugins.drone.io/drone-plugins/drone-s3/).
 
 ## Build
 
