@@ -15,5 +15,5 @@ LABEL org.label-schema.name="Drone S3"
 LABEL org.label-schema.vendor="Drone.IO Community"
 LABEL org.label-schema.schema-version="1.0"
 
-ADD release/linux/amd64/drone-s3 /bin/
+ADD release/linux/arm64/drone-s3 /bin/
 ENTRYPOINT [ "/bin/drone-s3" ]
