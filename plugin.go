@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"errors"
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -63,8 +62,6 @@ type Plugin struct {
 	// Strip the prefix from the target path
 	StripPrefix string
 
-	YamlVerified bool
-
 	// Exclude files matching this pattern.
 	Exclude []string
 
@@ -91,12 +88,12 @@ func (p *Plugin) Exec() error {
 		S3ForcePathStyle: aws.Bool(p.PathStyle),
 	}
 
-	//Allowing to use the instance role or provide a key and secret
 	if p.Key != "" && p.Secret != "" {
 		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
-	} else if p.YamlVerified != true {
-		return errors.New("Security issue: When using instance role you must have the yaml verified")
+	} else {
+		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
 	}
+
 	client := s3.New(session.New(), conf)
 
 	// find the bucket
