@@ -86,11 +86,6 @@ func main() {
 			Usage:  "use path style for bucket paths",
 			EnvVar: "PLUGIN_PATH_STYLE",
 		},
-		cli.BoolTFlag{
-			Name:   "yaml-verified",
-			Usage:  "Ensure the yaml was signed",
-			EnvVar: "DRONE_YAML_VERIFIED",
-		},
 		cli.StringFlag{
 			Name:  "env-file",
 			Usage: "source env file",
@@ -108,20 +103,19 @@ func run(c *cli.Context) error {
 	}
 
 	plugin := Plugin{
-		Endpoint:     c.String("endpoint"),
-		Key:          c.String("access-key"),
-		Secret:       c.String("secret-key"),
-		Bucket:       c.String("bucket"),
-		Region:       c.String("region"),
-		Access:       c.String("acl"),
-		Source:       c.String("source"),
-		Target:       c.String("target"),
-		StripPrefix:  c.String("strip-prefix"),
-		Exclude:      c.StringSlice("exclude"),
-		Encryption:   c.String("encryption"),
-		PathStyle:    c.Bool("path-style"),
-		DryRun:       c.Bool("dry-run"),
-		YamlVerified: c.BoolT("yaml-verified"),
+		Endpoint:    c.String("endpoint"),
+		Key:         c.String("access-key"),
+		Secret:      c.String("secret-key"),
+		Bucket:      c.String("bucket"),
+		Region:      c.String("region"),
+		Access:      c.String("acl"),
+		Source:      c.String("source"),
+		Target:      c.String("target"),
+		StripPrefix: c.String("strip-prefix"),
+		Exclude:     c.StringSlice("exclude"),
+		Encryption:  c.String("encryption"),
+		PathStyle:   c.Bool("path-style"),
+		DryRun:      c.Bool("dry-run"),
 	}
 
 	return plugin.Exec()
