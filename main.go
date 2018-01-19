@@ -16,7 +16,7 @@ func main() {
 	app.Name = "s3 plugin"
 	app.Usage = "s3 plugin"
 	app.Action = run
-	app.Version = fmt.Sprintf("1.0.%s", build)
+	app.Version = fmt.Sprintf("1.2.0+%s", build)
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "endpoint",
