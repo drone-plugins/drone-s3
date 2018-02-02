@@ -86,6 +86,24 @@ func main() {
 			Usage:  "use path style for bucket paths",
 			EnvVar: "PLUGIN_PATH_STYLE",
 		},
+		cli.GenericFlag{
+			Name:   "content-type",
+			Usage:  "content-type settings for uploads",
+			EnvVar: "PLUGIN_CONTENT_TYPE",
+			Value:  &StringMapFlag{},
+		},
+		cli.GenericFlag{
+			Name:   "content-encoding",
+			Usage:  "content-encoding settings for uploads",
+			EnvVar: "PLUGIN_CONTENT_ENCODING",
+			Value:  &StringMapFlag{},
+		},
+		cli.GenericFlag{
+			Name:   "cache-control",
+			Usage:  "cache-control settings for uploads",
+			EnvVar: "PLUGIN_CACHE_CONTROL",
+			Value:  &StringMapFlag{},
+		},
 		cli.StringFlag{
 			Name:  "env-file",
 			Usage: "source env file",
@@ -103,19 +121,22 @@ func run(c *cli.Context) error {
 	}
 
 	plugin := Plugin{
-		Endpoint:    c.String("endpoint"),
-		Key:         c.String("access-key"),
-		Secret:      c.String("secret-key"),
-		Bucket:      c.String("bucket"),
-		Region:      c.String("region"),
-		Access:      c.String("acl"),
-		Source:      c.String("source"),
-		Target:      c.String("target"),
-		StripPrefix: c.String("strip-prefix"),
-		Exclude:     c.StringSlice("exclude"),
-		Encryption:  c.String("encryption"),
-		PathStyle:   c.Bool("path-style"),
-		DryRun:      c.Bool("dry-run"),
+		Endpoint:        c.String("endpoint"),
+		Key:             c.String("access-key"),
+		Secret:          c.String("secret-key"),
+		Bucket:          c.String("bucket"),
+		Region:          c.String("region"),
+		Access:          c.String("acl"),
+		Source:          c.String("source"),
+		Target:          c.String("target"),
+		StripPrefix:     c.String("strip-prefix"),
+		Exclude:         c.StringSlice("exclude"),
+		Encryption:      c.String("encryption"),
+		PathStyle:       c.Bool("path-style"),
+		CacheControl:    c.Generic("cache-control").(*StringMapFlag).Get(),
+		ContentType:     c.Generic("content-type").(*StringMapFlag).Get(),
+		ContentEncoding: c.Generic("content-encoding").(*StringMapFlag).Get(),
+		DryRun:          c.Bool("dry-run"),
 	}
 
 	return plugin.Exec()

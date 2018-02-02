@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mattn/go-zglob"
+	glob "github.com/ryanuber/go-glob"
 )
 
 // Plugin defines the S3 plugin parameters.
@@ -71,6 +72,10 @@ type Plugin struct {
 	PathStyle bool
 	// Dry run without uploading/
 	DryRun bool
+
+	CacheControl    map[string]string
+	ContentType     map[string]string
+	ContentEncoding map[string]string
 }
 
 // Exec runs the plugin
@@ -126,16 +131,44 @@ func (p *Plugin) Exec() error {
 			target = "/" + target
 		}
 
-		// amazon S3 has pretty crappy default content-type headers so this pluign
-		// attempts to provide a proper content-type.
-		content := contentType(match)
+		fileExt := filepath.Ext(match)
+
+		var contentType string
+		for patternExt := range p.ContentType {
+			if patternExt == fileExt {
+				contentType = p.ContentType[patternExt]
+				break
+			}
+		}
+
+		if contentType == "" {
+			contentType = mime.TypeByExtension(fileExt)
+		}
+
+		var contentEncoding string
+		for patternExt := range p.ContentEncoding {
+			if patternExt == fileExt {
+				contentEncoding = p.ContentEncoding[patternExt]
+				break
+			}
+		}
+
+		var cacheControl string
+		for pattern := range p.CacheControl {
+			if glob.Glob(pattern, match) {
+				cacheControl = p.CacheControl[pattern]
+				break
+			}
+		}
 
 		// log file for debug purposes.
 		log.WithFields(log.Fields{
-			"name":         match,
-			"bucket":       p.Bucket,
-			"target":       target,
-			"content-type": content,
+			"name":             match,
+			"bucket":           p.Bucket,
+			"target":           target,
+			"content-type":     contentType,
+			"content-encoding": contentEncoding,
+			"cache-control":    cacheControl,
 		}).Info("Uploading file")
 
 		// when executing a dry-run we exit because we don't actually want to
@@ -155,11 +188,13 @@ func (p *Plugin) Exec() error {
 		defer f.Close()
 
 		putObjectInput := &s3.PutObjectInput{
-			Body:        f,
-			Bucket:      &(p.Bucket),
-			Key:         &target,
-			ACL:         &(p.Access),
-			ContentType: &content,
+			Body:            f,
+			Bucket:          &(p.Bucket),
+			Key:             &target,
+			ACL:             &(p.Access),
+			ContentType:     &contentType,
+			ContentEncoding: &contentEncoding,
+			CacheControl:    &cacheControl,
 		}
 
 		if p.Encryption != "" {
@@ -218,16 +253,4 @@ func matches(include string, exclude []string) ([]string, error) {
 		included = append(included, include)
 	}
 	return included, nil
-}
-
-// contentType is a helper function that returns the content type for the file
-// based on extension. If the file extension is unknown application/octet-stream
-// is returned.
-func contentType(path string) string {
-	ext := filepath.Ext(path)
-	typ := mime.TypeByExtension(ext)
-	if typ == "" {
-		typ = "application/octet-stream"
-	}
-	return typ
 }
