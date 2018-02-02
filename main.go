@@ -104,6 +104,12 @@ func main() {
 			EnvVar: "PLUGIN_CACHE_CONTROL",
 			Value:  &StringMapFlag{},
 		},
+		cli.GenericFlag{
+			Name:   "metadata",
+			Usage:  "additional metadata for uploads",
+			EnvVar: "PLUGIN_METADATA",
+			Value:  &DeepStringMapFlag{},
+		},
 		cli.StringFlag{
 			Name:  "env-file",
 			Usage: "source env file",
@@ -136,6 +142,7 @@ func run(c *cli.Context) error {
 		CacheControl:    c.Generic("cache-control").(*StringMapFlag).Get(),
 		ContentType:     c.Generic("content-type").(*StringMapFlag).Get(),
 		ContentEncoding: c.Generic("content-encoding").(*StringMapFlag).Get(),
+		Metadata:        c.Generic("metadata").(*DeepStringMapFlag).Get(),
 		DryRun:          c.Bool("dry-run"),
 	}
 

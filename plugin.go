@@ -76,6 +76,8 @@ type Plugin struct {
 	CacheControl    map[string]string
 	ContentType     map[string]string
 	ContentEncoding map[string]string
+
+	Metadata map[string]map[string]string
 }
 
 // Exec runs the plugin
@@ -161,6 +163,16 @@ func (p *Plugin) Exec() error {
 			}
 		}
 
+		metadata := map[string]*string{}
+		for pattern := range p.Metadata {
+			if glob.Glob(pattern, match) {
+				for k, v := range p.Metadata[pattern] {
+					metadata[k] = aws.String(v)
+				}
+				break
+			}
+		}
+
 		// log file for debug purposes.
 		log.WithFields(log.Fields{
 			"name":             match,
@@ -169,6 +181,7 @@ func (p *Plugin) Exec() error {
 			"content-type":     contentType,
 			"content-encoding": contentEncoding,
 			"cache-control":    cacheControl,
+			"metadata":         metadata,
 		}).Info("Uploading file")
 
 		// when executing a dry-run we exit because we don't actually want to
@@ -189,12 +202,13 @@ func (p *Plugin) Exec() error {
 
 		putObjectInput := &s3.PutObjectInput{
 			Body:            f,
-			Bucket:          &(p.Bucket),
-			Key:             &target,
-			ACL:             &(p.Access),
-			ContentType:     &contentType,
-			ContentEncoding: &contentEncoding,
-			CacheControl:    &cacheControl,
+			Bucket:          aws.String(p.Bucket),
+			Key:             aws.String(target),
+			ACL:             aws.String(p.Access),
+			ContentType:     aws.String(contentType),
+			ContentEncoding: aws.String(contentEncoding),
+			CacheControl:    aws.String(cacheControl),
+			Metadata:        metadata,
 		}
 
 		if p.Encryption != "" {
