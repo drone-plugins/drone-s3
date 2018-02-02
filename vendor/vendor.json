@@ -191,6 +191,12 @@
 			"revisionTime": "2016-06-07T00:28:33Z"
 		},
 		{
+			"checksumSHA1": "6JP37UqrI0H80Gpk0Y2P+KXgn5M=",
+			"path": "github.com/ryanuber/go-glob",
+			"revision": "256dc444b735e061061cf46c809487313d5b0065",
+			"revisionTime": "2017-01-28T01:21:29Z"
+		},
+		{
 			"checksumSHA1": "W1G9Avuz92Ng1IqblcO/cIe6pHU=",
 			"path": "github.com/urfave/cli",
 			"revision": "d9021faab69f92295ef7061bd39e4a76dcbdef32",
