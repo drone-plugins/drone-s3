@@ -192,18 +192,27 @@ func (p *Plugin) Exec() error {
 		defer f.Close()
 
 		putObjectInput := &s3.PutObjectInput{
-			Body:            f,
-			Bucket:          aws.String(p.Bucket),
-			Key:             aws.String(target),
-			ACL:             aws.String(p.Access),
-			ContentType:     aws.String(contentType),
-			ContentEncoding: aws.String(contentEncoding),
-			CacheControl:    aws.String(cacheControl),
-			Metadata:        metadata,
+			Body:     f,
+			Bucket:   aws.String(p.Bucket),
+			Key:      aws.String(target),
+			ACL:      aws.String(p.Access),
+			Metadata: metadata,
+		}
+
+		if contentType != "" {
+			putObjectInput.ContentType = aws.String(contentType)
+		}
+
+		if contentEncoding != "" {
+			putObjectInput.ContentEncoding = aws.String(contentEncoding)
+		}
+
+		if cacheControl != "" {
+			putObjectInput.CacheControl = aws.String(cacheControl)
 		}
 
 		if p.Encryption != "" {
-			putObjectInput.ServerSideEncryption = &(p.Encryption)
+			putObjectInput.ServerSideEncryption = aws.String(p.Encryption)
 		}
 
 		_, err = client.PutObject(putObjectInput)
