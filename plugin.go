@@ -133,24 +133,22 @@ func (p *Plugin) Exec() error {
 			target = "/" + target
 		}
 
-		fileExt := filepath.Ext(match)
-
 		var contentType string
-		for patternExt := range p.ContentType {
-			if patternExt == fileExt {
-				contentType = p.ContentType[patternExt]
+		for pattern := range p.ContentType {
+			if glob.Glob(pattern, match) {
+				contentType = p.ContentType[pattern]
 				break
 			}
 		}
 
 		if contentType == "" {
-			contentType = mime.TypeByExtension(fileExt)
+			contentType = mime.TypeByExtension(filepath.Ext(match))
 		}
 
 		var contentEncoding string
-		for patternExt := range p.ContentEncoding {
-			if patternExt == fileExt {
-				contentEncoding = p.ContentEncoding[patternExt]
+		for pattern := range p.ContentEncoding {
+			if glob.Glob(pattern, match) {
+				contentEncoding = p.ContentEncoding[pattern]
 				break
 			}
 		}
