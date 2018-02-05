@@ -155,6 +155,7 @@ func (p *Plugin) Exec() error {
 
 		metadata := map[string]*string{}
 		for pattern := range p.Metadata {
+			// for compatibility with old 'glob' implementation
 			if matched, _ := regexp.MatchString(pattern, match); matched {
 				for k, v := range p.Metadata[pattern] {
 					metadata[k] = aws.String(v)

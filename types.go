@@ -26,7 +26,7 @@ func (d *DeepStringMapFlag) Set(value string) error {
 			return err
 		}
 
-		d.parts["*"] = single
+		d.parts[""] = single
 	}
 
 	return nil
@@ -48,7 +48,7 @@ func (s *StringMapFlag) Set(value string) error {
 	s.parts = map[string]string{}
 	err := json.Unmarshal([]byte(value), &s.parts)
 	if err != nil {
-		s.parts["*"] = value
+		s.parts[""] = value
 	}
 	return nil
 }
