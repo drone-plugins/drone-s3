@@ -103,9 +103,20 @@ func (p *Plugin) Exec() error {
 
 	// find the bucket
 	log.WithFields(log.Fields{
-		"region":   p.Region,
-		"endpoint": p.Endpoint,
-		"bucket":   p.Bucket,
+		"region":           p.Region,
+		"endpoint":         p.Endpoint,
+		"bucket":           p.Bucket,
+		"access":           p.Access,
+		"source":           p.Source,
+		"target":           p.Target,
+		"strip-prefix":     p.StripPrefix,
+		"exclude":          p.Exclude,
+		"path-style":       p.PathStyle,
+		"dry-run":          p.DryRun,
+		"content-type":     p.ContentType,
+		"content-encoding": p.ContentEncoding,
+		"cache-control":    p.CacheControl,
+		"metadata":         p.Metadata,
 	}).Info("Attempting to upload")
 
 	matches, err := matches(p.Source, p.Exclude)
