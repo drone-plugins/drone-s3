@@ -4,6 +4,7 @@ import (
 	"mime"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -12,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mattn/go-zglob"
-	glob "github.com/ryanuber/go-glob"
 )
 
 // Plugin defines the S3 plugin parameters.
@@ -133,37 +133,18 @@ func (p *Plugin) Exec() error {
 			target = "/" + target
 		}
 
-		var contentType string
-		for pattern := range p.ContentType {
-			if glob.Glob(pattern, match) {
-				contentType = p.ContentType[pattern]
-				break
-			}
-		}
+		contentType := matcher(match, p.ContentType)
 
 		if contentType == "" {
 			contentType = mime.TypeByExtension(filepath.Ext(match))
 		}
 
-		var contentEncoding string
-		for pattern := range p.ContentEncoding {
-			if glob.Glob(pattern, match) {
-				contentEncoding = p.ContentEncoding[pattern]
-				break
-			}
-		}
-
-		var cacheControl string
-		for pattern := range p.CacheControl {
-			if glob.Glob(pattern, match) {
-				cacheControl = p.CacheControl[pattern]
-				break
-			}
-		}
+		cacheControl := matcher(match, p.CacheControl)
+		contentEncoding := matcher(match, p.ContentEncoding)
 
 		metadata := map[string]*string{}
 		for pattern := range p.Metadata {
-			if glob.Glob(pattern, match) {
+			if matched, _ := regexp.MatchString(pattern, match); matched {
 				for k, v := range p.Metadata[pattern] {
 					metadata[k] = aws.String(v)
 				}
