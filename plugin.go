@@ -4,9 +4,9 @@ import (
 	"mime"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
-	"errors"
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -63,8 +63,6 @@ type Plugin struct {
 	// Strip the prefix from the target path
 	StripPrefix string
 
-	YamlVerified bool
-
 	// Exclude files matching this pattern.
 	Exclude []string
 
@@ -74,6 +72,12 @@ type Plugin struct {
 	PathStyle bool
 	// Dry run without uploading/
 	DryRun bool
+
+	CacheControl    map[string]string
+	ContentType     map[string]string
+	ContentEncoding map[string]string
+
+	Metadata map[string]map[string]string
 }
 
 // Exec runs the plugin
@@ -94,16 +98,25 @@ func (p *Plugin) Exec() error {
 	//Allowing to use the instance role or provide a key and secret
 	if p.Key != "" && p.Secret != "" {
 		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
-	} else if p.YamlVerified != true {
-		return errors.New("Security issue: When using instance role you must have the yaml verified")
 	}
 	client := s3.New(session.New(), conf)
 
 	// find the bucket
 	log.WithFields(log.Fields{
-		"region":   p.Region,
-		"endpoint": p.Endpoint,
-		"bucket":   p.Bucket,
+		"region":           p.Region,
+		"endpoint":         p.Endpoint,
+		"bucket":           p.Bucket,
+		"access":           p.Access,
+		"source":           p.Source,
+		"target":           p.Target,
+		"strip-prefix":     p.StripPrefix,
+		"exclude":          p.Exclude,
+		"path-style":       p.PathStyle,
+		"dry-run":          p.DryRun,
+		"content-type":     p.ContentType,
+		"content-encoding": p.ContentEncoding,
+		"cache-control":    p.CacheControl,
+		"metadata":         p.Metadata,
 	}).Info("Attempting to upload")
 
 	matches, err := matches(p.Source, p.Exclude)
@@ -131,16 +144,35 @@ func (p *Plugin) Exec() error {
 			target = "/" + target
 		}
 
-		// amazon S3 has pretty crappy default content-type headers so this pluign
-		// attempts to provide a proper content-type.
-		content := contentType(match)
+		contentType := matcher(match, p.ContentType)
+
+		if contentType == "" {
+			contentType = mime.TypeByExtension(filepath.Ext(match))
+		}
+
+		cacheControl := matcher(match, p.CacheControl)
+		contentEncoding := matcher(match, p.ContentEncoding)
+
+		metadata := map[string]*string{}
+		for pattern := range p.Metadata {
+			// for compatibility with old 'glob' implementation
+			if matched, _ := regexp.MatchString(pattern, match); matched {
+				for k, v := range p.Metadata[pattern] {
+					metadata[k] = aws.String(v)
+				}
+				break
+			}
+		}
 
 		// log file for debug purposes.
 		log.WithFields(log.Fields{
-			"name":         match,
-			"bucket":       p.Bucket,
-			"target":       target,
-			"content-type": content,
+			"name":             match,
+			"bucket":           p.Bucket,
+			"target":           target,
+			"content-type":     contentType,
+			"content-encoding": contentEncoding,
+			"cache-control":    cacheControl,
+			"metadata":         metadata,
 		}).Info("Uploading file")
 
 		// when executing a dry-run we exit because we don't actually want to
@@ -160,15 +192,27 @@ func (p *Plugin) Exec() error {
 		defer f.Close()
 
 		putObjectInput := &s3.PutObjectInput{
-			Body:        f,
-			Bucket:      &(p.Bucket),
-			Key:         &target,
-			ACL:         &(p.Access),
-			ContentType: &content,
+			Body:     f,
+			Bucket:   aws.String(p.Bucket),
+			Key:      aws.String(target),
+			ACL:      aws.String(p.Access),
+			Metadata: metadata,
+		}
+
+		if contentType != "" {
+			putObjectInput.ContentType = aws.String(contentType)
+		}
+
+		if contentEncoding != "" {
+			putObjectInput.ContentEncoding = aws.String(contentEncoding)
+		}
+
+		if cacheControl != "" {
+			putObjectInput.CacheControl = aws.String(cacheControl)
 		}
 
 		if p.Encryption != "" {
-			putObjectInput.ServerSideEncryption = &(p.Encryption)
+			putObjectInput.ServerSideEncryption = aws.String(p.Encryption)
 		}
 
 		_, err = client.PutObject(putObjectInput)
@@ -223,16 +267,4 @@ func matches(include string, exclude []string) ([]string, error) {
 		included = append(included, include)
 	}
 	return included, nil
-}
-
-// contentType is a helper function that returns the content type for the file
-// based on extension. If the file extension is unknown application/octet-stream
-// is returned.
-func contentType(path string) string {
-	ext := filepath.Ext(path)
-	typ := mime.TypeByExtension(ext)
-	if typ == "" {
-		typ = "application/octet-stream"
-	}
-	return typ
 }
