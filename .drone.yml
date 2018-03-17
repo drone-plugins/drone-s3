@@ -3,44 +3,146 @@ workspace:
   path: src/github.com/drone-plugins/drone-s3
 
 pipeline:
-  test:
-    image: golang:1.8
+  deps:
+    image: golang:1.10
+    pull: true
     commands:
-      - go vet
-      - go test -cover -coverprofile=coverage.out
+      - go get -u github.com/golang/dep/cmd/dep
+      - dep ensure
 
-  build:
-    image: golang:1.8
-    commands: sh .drone.sh
-    when:
-      branch: master
-      event: push
+  test:
+    image: golang:1.10
+    pull: true
+    commands:
+      - go vet ./...
+      - go test -cover ./...
+
+  build_linux_amd64:
+    image: golang:1.10
+    pull: true
+    group: build
+    environment:
+      - GOOS=linux
+      - GOARCH=amd64
+      - CGO_ENABLED=0
+    commands:
+      - |
+        if test "${DRONE_TAG}" = ""; then
+          go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/amd64/drone-s3
+        else
+          go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/amd64/drone-s3
+        fi
+
+  build_linux_i386:
+    image: golang:1.10
+    pull: true
+    group: build
+    environment:
+      - GOOS=linux
+      - GOARCH=386
+      - CGO_ENABLED=0
+    commands:
+      - |
+        if test "${DRONE_TAG}" = ""; then
+          go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/i386/drone-s3
+        else
+          go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/i386/drone-s3
+        fi
+
+  build_linux_arm64:
+    image: golang:1.10
+    pull: true
+    group: build
+    environment:
+      - GOOS=linux
+      - GOARCH=arm64
+      - CGO_ENABLED=0
+    commands:
+      - |
+        if test "${DRONE_TAG}" = ""; then
+          go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/drone-s3
+        else
+          go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/drone-s3
+        fi
+
+  build_linux_arm:
+    image: golang:1.10
+    pull: true
+    group: build
+    environment:
+      - GOOS=linux
+      - GOARCH=arm
+      - CGO_ENABLED=0
+      - GOARM=7
+    commands:
+      - |
+        if test "${DRONE_TAG}" = ""; then
+          go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm/drone-s3
+        else
+          go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm/drone-s3
+        fi
 
   publish_linux_amd64:
-    image: plugins/docker
-    repo: plugins/s3
-    tags: [ "latest", "1.2", "1" ]
+    image: plugins/docker:17.12
+    pull: true
     secrets: [ docker_username, docker_password ]
+    group: docker
+    repo: plugins/s3
+    auto_tag: true
+    auto_tag_suffix: linux-amd64
+    dockerfile: Dockerfile
     when:
-      branch: master
-      event: push
+      event: [ push, tag ]
 
-  publish_linux_armhf:
-    image: plugins/docker
-    repo: plugins/s3
-    tags: [ "linux-arm" ]
-    dockerfile: Dockerfile.armhf
+  publish_linux_i386:
+    image: plugins/docker:17.12
+    pull: true
     secrets: [ docker_username, docker_password ]
+    group: docker
+    repo: plugins/s3
+    auto_tag: true
+    auto_tag_suffix: linux-i386
+    dockerfile: Dockerfile.i386
     when:
-      branch: master
-      event: push
+      event: [ push, tag ]
 
-  publish_linux_aarch64:
-    image: plugins/docker
-    repo: plugins/s3
-    tags: [ "linux-arm64" ]
-    dockerfile: Dockerfile.aarch64
+  publish_linux_arm64:
+    image: plugins/docker:17.12
+    pull: true
     secrets: [ docker_username, docker_password ]
+    group: docker
+    repo: plugins/s3
+    auto_tag: true
+    auto_tag_suffix: linux-arm64
+    dockerfile: Dockerfile.arm64
     when:
-      branch: master
-      event: push
+      event: [ push, tag ]
+
+  publish_linux_arm:
+    image: plugins/docker:17.12
+    pull: true
+    secrets: [ docker_username, docker_password ]
+    group: docker
+    repo: plugins/s3
+    auto_tag: true
+    auto_tag_suffix: linux-arm
+    dockerfile: Dockerfile.arm
+    when:
+      event: [ push, tag ]
+
+  manifests:
+    image: plugins/manifest:1
+    pull: true
+    secrets: [ docker_username, docker_password ]
+    spec: manifest.tmpl
+    auto_tag: true
+    ignore_missing: true
+    when:
+      event: [ push, tag ]
+
+  microbadger:
+    image: plugins/webhook:1
+    pull: true
+    secrets: [ webhook_url ]
+    when:
+      status: [ success ]
