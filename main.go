@@ -86,6 +86,11 @@ func main() {
 			Usage:  "use path style for bucket paths",
 			EnvVar: "PLUGIN_PATH_STYLE",
 		},
+		cli.StringFlag{
+			Name:   "cache-control",
+			Usage:  "set cache-control header for uploaded objects",
+			EnvVar: "PLUGIN_CACHE_CONTROL",
+		},
 		cli.BoolTFlag{
 			Name:   "yaml-verified",
 			Usage:  "Ensure the yaml was signed",
@@ -119,6 +124,7 @@ func run(c *cli.Context) error {
 		StripPrefix:  c.String("strip-prefix"),
 		Exclude:      c.StringSlice("exclude"),
 		Encryption:   c.String("encryption"),
+		CacheControl: c.String("cache-control"),
 		PathStyle:    c.Bool("path-style"),
 		DryRun:       c.Bool("dry-run"),
 		YamlVerified: c.BoolT("yaml-verified"),

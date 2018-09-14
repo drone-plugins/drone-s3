@@ -48,6 +48,9 @@ type Plugin struct {
 	//     bucket-owner-full-control
 	Access string
 
+	// Sets the Cache-Control header on each uploaded object
+	CacheControl string
+
 	// Copies the files from the specified directory.
 	// Regexp matching will apply to match multiple
 	// files
@@ -169,6 +172,10 @@ func (p *Plugin) Exec() error {
 
 		if p.Encryption != "" {
 			putObjectInput.ServerSideEncryption = &(p.Encryption)
+		}
+
+		if p.CacheControl != "" {
+			putObjectInput.CacheControl = &(p.CacheControl)
 		}
 
 		_, err = client.PutObject(putObjectInput)
