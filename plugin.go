@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"errors"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -115,6 +116,10 @@ func (p *Plugin) Exec() error {
 			"error": err,
 		}).Error("Could not match files")
 		return err
+	}
+
+	if len(matches) < 1 {
+		log.Warnf("warning no matches found for %v excluding %v", p.Source, p.Exclude)
 	}
 
 	for _, match := range matches {
