@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"mime"
 	"os"
 	"path/filepath"
@@ -134,6 +135,8 @@ func (p *Plugin) Exec() error {
 			target = "/" + target
 		}
 
+		uri := fmt.Sprintf("s3://%s%s", p.Bucket, target)
+
 		// amazon S3 has pretty crappy default content-type headers so this pluign
 		// attempts to provide a proper content-type.
 		content := contentType(match)
@@ -144,6 +147,7 @@ func (p *Plugin) Exec() error {
 			"bucket":       p.Bucket,
 			"target":       target,
 			"content-type": content,
+			"uri":          uri,
 		}).Info("Uploading file")
 
 		// when executing a dry-run we exit because we don't actually want to
