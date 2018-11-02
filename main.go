@@ -9,14 +9,17 @@ import (
 	"github.com/urfave/cli"
 )
 
-var build = "0" // build number set at compile-time
+var (
+	version = "0.0.0"
+	build   = "0"
+)
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "s3 plugin"
 	app.Usage = "s3 plugin"
+	app.Version = fmt.Sprintf("%s+%s", version, build)
 	app.Action = run
-	app.Version = fmt.Sprintf("1.0.%s", build)
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "endpoint",
@@ -87,6 +90,11 @@ func main() {
 			EnvVar: "PLUGIN_PATH_STYLE",
 		},
 		cli.StringFlag{
+			Name:   "cache-control",
+			Usage:  "set cache-control header for uploaded objects",
+			EnvVar: "PLUGIN_CACHE_CONTROL",
+		},
+		cli.StringFlag{
 			Name:  "env-file",
 			Usage: "source env file",
 		},
@@ -103,19 +111,20 @@ func run(c *cli.Context) error {
 	}
 
 	plugin := Plugin{
-		Endpoint:    c.String("endpoint"),
-		Key:         c.String("access-key"),
-		Secret:      c.String("secret-key"),
-		Bucket:      c.String("bucket"),
-		Region:      c.String("region"),
-		Access:      c.String("acl"),
-		Source:      c.String("source"),
-		Target:      c.String("target"),
-		StripPrefix: c.String("strip-prefix"),
-		Exclude:     c.StringSlice("exclude"),
-		Encryption:  c.String("encryption"),
-		PathStyle:   c.Bool("path-style"),
-		DryRun:      c.Bool("dry-run"),
+		Endpoint:     c.String("endpoint"),
+		Key:          c.String("access-key"),
+		Secret:       c.String("secret-key"),
+		Bucket:       c.String("bucket"),
+		Region:       c.String("region"),
+		Access:       c.String("acl"),
+		Source:       c.String("source"),
+		Target:       c.String("target"),
+		StripPrefix:  c.String("strip-prefix"),
+		Exclude:      c.StringSlice("exclude"),
+		Encryption:   c.String("encryption"),
+		CacheControl: c.String("cache-control"),
+		PathStyle:    c.Bool("path-style"),
+		DryRun:       c.Bool("dry-run"),
 	}
 
 	return plugin.Exec()
