@@ -7,7 +7,10 @@ import (
 	"strings"
 
 	"errors"
+
 	log "github.com/Sirupsen/logrus"
+	glob "github.com/ryanuber/go-glob"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -50,6 +53,14 @@ type Plugin struct {
 
 	// Sets the Cache-Control header on each uploaded object
 	CacheControl string
+
+	// A standard MIME type describing the format of the object data.
+	ContentType map[string]string
+
+	// Specifies what content encodings have been applied to the object and thus
+	// what decoding mechanisms must be applied to obtain the media-type referenced
+	// by the Content-Type header field.
+	ContentEncoding map[string]string
 
 	// Copies the files from the specified directory.
 	// Regexp matching will apply to match multiple
@@ -102,11 +113,20 @@ func (p *Plugin) Exec() error {
 	}
 	client := s3.New(session.New(), conf)
 
-	// find the bucket
 	log.WithFields(log.Fields{
-		"region":   p.Region,
-		"endpoint": p.Endpoint,
-		"bucket":   p.Bucket,
+		"region":           p.Region,
+		"endpoint":         p.Endpoint,
+		"bucket":           p.Bucket,
+		"access":           p.Access,
+		"source":           p.Source,
+		"target":           p.Target,
+		"strip-prefix":     p.StripPrefix,
+		"exclude":          p.Exclude,
+		"path-style":       p.PathStyle,
+		"dry-run":          p.DryRun,
+		"content-type":     p.ContentType,
+		"content-encoding": p.ContentEncoding,
+		"cache-control":    p.CacheControl,
 	}).Info("Attempting to upload")
 
 	matches, err := matches(p.Source, p.Exclude)
@@ -134,16 +154,17 @@ func (p *Plugin) Exec() error {
 			target = "/" + target
 		}
 
-		// amazon S3 has pretty crappy default content-type headers so this pluign
-		// attempts to provide a proper content-type.
-		content := contentType(match)
+		contentType := getContentType(match, p.ContentType)
+		contentEncoding := globMatch(match, p.ContentEncoding)
 
 		// log file for debug purposes.
 		log.WithFields(log.Fields{
-			"name":         match,
-			"bucket":       p.Bucket,
-			"target":       target,
-			"content-type": content,
+			"name":             match,
+			"bucket":           p.Bucket,
+			"target":           target,
+			"cache-control":    p.CacheControl,
+			"content-type":     contentType,
+			"content-encoding": contentEncoding,
 		}).Info("Uploading file")
 
 		// when executing a dry-run we exit because we don't actually want to
@@ -167,7 +188,7 @@ func (p *Plugin) Exec() error {
 			Bucket:      &(p.Bucket),
 			Key:         &target,
 			ACL:         &(p.Access),
-			ContentType: &content,
+			ContentType: &contentType,
 		}
 
 		if p.Encryption != "" {
@@ -176,6 +197,14 @@ func (p *Plugin) Exec() error {
 
 		if p.CacheControl != "" {
 			putObjectInput.CacheControl = &(p.CacheControl)
+		}
+
+		if contentType != "" {
+			putObjectInput.ContentType = aws.String(contentType)
+		}
+
+		if contentEncoding != "" {
+			putObjectInput.ContentEncoding = aws.String(contentEncoding)
 		}
 
 		_, err = client.PutObject(putObjectInput)
@@ -232,14 +261,34 @@ func matches(include string, exclude []string) ([]string, error) {
 	return included, nil
 }
 
-// contentType is a helper function that returns the content type for the file
-// based on extension. If the file extension is unknown application/octet-stream
+// getContentType is a helper function that returns the content type for the file
+// based on a list of glob patterns. If no match is found, it returns the type
+// based on the extension. If the file extension is unknown "application/octet-stream"
 // is returned.
-func contentType(path string) string {
-	ext := filepath.Ext(path)
-	typ := mime.TypeByExtension(ext)
+func getContentType(path string, patterns map[string]string) string {
+	typ := globMatch(path, patterns)
+
+	// amazon S3 has pretty crappy default content-type headers so this pluign
+	// attempts to provide a proper content-type in case it is not set by the user.
+	if typ == "" {
+		typ = mime.TypeByExtension(filepath.Ext(path))
+	}
+
 	if typ == "" {
 		typ = "application/octet-stream"
 	}
+
 	return typ
+}
+
+// globMatch is a helper function that iterates map of glob patterns
+// and returns the value of that map once it finds a pattern that matches
+// the given string.
+func globMatch(path string, patterns map[string]string) string {
+	for pattern := range patterns {
+		if glob.Glob(pattern, path) {
+			return patterns[pattern]
+		}
+	}
+	return ""
 }

@@ -94,6 +94,18 @@ func main() {
 			Usage:  "set cache-control header for uploaded objects",
 			EnvVar: "PLUGIN_CACHE_CONTROL",
 		},
+		cli.GenericFlag{
+			Name:   "content-encoding",
+			Usage:  "content-encoding settings for uploads",
+			EnvVar: "PLUGIN_CONTENT_ENCODING",
+			Value:  &StringMapFlag{},
+		},
+		cli.GenericFlag{
+			Name:   "content-type",
+			Usage:  "content-type settings for uploads",
+			EnvVar: "PLUGIN_CONTENT_TYPE",
+			Value:  &StringMapFlag{},
+		},
 		cli.BoolTFlag{
 			Name:   "yaml-verified",
 			Usage:  "Ensure the yaml was signed",
@@ -116,21 +128,23 @@ func run(c *cli.Context) error {
 	}
 
 	plugin := Plugin{
-		Endpoint:     c.String("endpoint"),
-		Key:          c.String("access-key"),
-		Secret:       c.String("secret-key"),
-		Bucket:       c.String("bucket"),
-		Region:       c.String("region"),
-		Access:       c.String("acl"),
-		Source:       c.String("source"),
-		Target:       c.String("target"),
-		StripPrefix:  c.String("strip-prefix"),
-		Exclude:      c.StringSlice("exclude"),
-		Encryption:   c.String("encryption"),
-		CacheControl: c.String("cache-control"),
-		PathStyle:    c.Bool("path-style"),
-		DryRun:       c.Bool("dry-run"),
-		YamlVerified: c.BoolT("yaml-verified"),
+		Endpoint:        c.String("endpoint"),
+		Key:             c.String("access-key"),
+		Secret:          c.String("secret-key"),
+		Bucket:          c.String("bucket"),
+		Region:          c.String("region"),
+		Access:          c.String("acl"),
+		Source:          c.String("source"),
+		Target:          c.String("target"),
+		StripPrefix:     c.String("strip-prefix"),
+		Exclude:         c.StringSlice("exclude"),
+		Encryption:      c.String("encryption"),
+		CacheControl:    c.String("cache-control"),
+		ContentEncoding: c.Generic("content-encoding").(*StringMapFlag).Get(),
+		ContentType:     c.Generic("content-type").(*StringMapFlag).Get(),
+		PathStyle:       c.Bool("path-style"),
+		DryRun:          c.Bool("dry-run"),
+		YamlVerified:    c.BoolT("yaml-verified"),
 	}
 
 	return plugin.Exec()
