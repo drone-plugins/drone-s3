@@ -94,11 +94,6 @@ func main() {
 			Usage:  "set cache-control header for uploaded objects",
 			EnvVar: "PLUGIN_CACHE_CONTROL",
 		},
-		cli.BoolTFlag{
-			Name:   "yaml-verified",
-			Usage:  "Ensure the yaml was signed",
-			EnvVar: "DRONE_YAML_VERIFIED",
-		},
 		cli.StringFlag{
 			Name:  "env-file",
 			Usage: "source env file",
@@ -130,7 +125,6 @@ func run(c *cli.Context) error {
 		CacheControl: c.String("cache-control"),
 		PathStyle:    c.Bool("path-style"),
 		DryRun:       c.Bool("dry-run"),
-		YamlVerified: c.BoolT("yaml-verified"),
 	}
 
 	return plugin.Exec()
