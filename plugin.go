@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mattn/go-zglob"
+	log "github.com/sirupsen/logrus"
 )
 
 // Plugin defines the S3 plugin parameters.
