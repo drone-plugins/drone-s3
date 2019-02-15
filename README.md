@@ -8,41 +8,35 @@
 [![Go Doc](https://godoc.org/github.com/drone-plugins/drone-s3?status.svg)](http://godoc.org/github.com/drone-plugins/drone-s3)
 [![Go Report](https://goreportcard.com/badge/github.com/drone-plugins/drone-s3)](https://goreportcard.com/report/github.com/drone-plugins/drone-s3)
 
-Drone plugin to publish files and artifacts to Amazon S3 or Minio. For the
-usage information and a listing of the available options please take a look at
-[the docs](http://plugins.drone.io/drone-plugins/drone-s3/).
+Drone plugin to publish files and artifacts to Amazon S3 or Minio. For the usage information and a listing of the available options please take a look at [the docs](http://plugins.drone.io/drone-plugins/drone-s3/).
 
 ## Build
 
-Build the binary with the following commands:
+Build the binary with the following command:
 
-```
-go build
-go test
+```console
+export GOOS=linux
+export GOARCH=amd64
+export CGO_ENABLED=0
+export GO111MODULE=on
+
+go build -v -a -tags netgo -o release/linux/amd64/drone-s3
 ```
 
 ## Docker
 
-Build the Docker image with the following commands:
+Build the Docker image with the following command:
 
-```
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo
-docker build --rm=true -t plugins/s3 .
-```
-
-Please note incorrectly building the image for the correct x64 linux and with
-CGO disabled will result in an error when running the Docker image:
-
-```
-docker: Error response from daemon: Container command
-'/bin/drone-s3' not found or does not exist..
+```console
+docker build \
+  --label org.label-schema.build-date=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+  --label org.label-schema.vcs-ref=$(git rev-parse --short HEAD) \
+  --file docker/Dockerfile.linux.amd64 --tag plugins/s3 .
 ```
 
 ## Usage
 
-Execute from the working directory:
-
-```
+```console
 docker run --rm \
   -e PLUGIN_SOURCE=<source> \
   -e PLUGIN_TARGET=<target> \
@@ -51,5 +45,5 @@ docker run --rm \
   -e AWS_SECRET_ACCESS_KEY=<secret> \
   -v $(pwd):$(pwd) \
   -w $(pwd) \
-  plugins/s3 --dry-run
+  plugins/s3
 ```
