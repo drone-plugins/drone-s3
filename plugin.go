@@ -4,6 +4,7 @@ import (
 	"mime"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -74,6 +75,8 @@ type Plugin struct {
 	PathStyle bool
 	// Dry run without uploading/
 	DryRun bool
+	// Regex for which files to remove from target
+	TargetRemove string
 }
 
 // Exec runs the plugin
@@ -112,6 +115,81 @@ func (p *Plugin) Exec() error {
 			"error": err,
 		}).Error("Could not match files")
 		return err
+	}
+
+	if len(p.TargetRemove) != 0 {
+		reg, regexperr := regexp.Compile(p.TargetRemove)
+
+		if regexperr != nil {
+			log.WithFields(log.Fields{
+				"error":  regexperr,
+				"regexp": p.TargetRemove,
+			}).Error("Regular expression failed to compile")
+			return regexperr
+		}
+
+		log.WithFields(log.Fields{
+			"regexp": p.TargetRemove,
+		}).Info("Deleting files according to regexp")
+
+		log.Info("Listing files in bucket") // @ToDo: Log.Debug
+		list_input := &s3.ListObjectsInput{
+			Bucket: &p.Bucket,
+		}
+
+		s3_objects, list_err := client.ListObjects(list_input)
+		if list_err != nil {
+			log.WithFields(log.Fields{
+				"error": list_err,
+			}).Error("Error listing objects from bucket")
+			return list_err
+		}
+
+		var to_remove []string
+		for _, object := range s3_objects.Contents {
+			filename := object.Key
+			if reg.MatchString(*filename) {
+				to_remove = append(to_remove, *filename)
+			}
+		}
+
+		if len(to_remove) > 0 {
+			log.WithFields(log.Fields{
+				"num_files": len(to_remove),
+			}).Info("Deleting files from bucket")
+
+			var remove_identifiers []*s3.ObjectIdentifier
+			for _, key := range to_remove {
+				id := s3.ObjectIdentifier{
+					Key: aws.String(key),
+				}
+				remove_identifiers = append(remove_identifiers, &id)
+			}
+
+			delete_input := &s3.DeleteObjectsInput{
+				Bucket: &p.Bucket,
+				Delete: &s3.Delete{
+					Objects: remove_identifiers,
+					Quiet:   aws.Bool(false),
+				},
+			}
+
+			// when executing a dry-run we skip this step because we don't actually
+			// want to remove files from S3.
+			if !p.DryRun {
+				log.WithFields(log.Fields{
+					"num_files": len(remove_identifiers),
+				}).Info("Attempting to delete files")
+				_, delete_err := client.DeleteObjects(delete_input)
+
+				if delete_err != nil {
+					log.WithFields(log.Fields{
+						"error": delete_err,
+					}).Error("Error deleting objects from S3")
+					return delete_err
+				}
+			}
+		}
 	}
 
 	for _, match := range matches {

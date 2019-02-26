@@ -98,6 +98,11 @@ func main() {
 			Name:  "env-file",
 			Usage: "source env file",
 		},
+		cli.StringFlag{
+			Name:   "target-remove",
+			Usage:  "regex for which files to remove from target",
+			EnvVar: "PLUGIN_TARGET_REMOVE",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -125,6 +130,7 @@ func run(c *cli.Context) error {
 		CacheControl: c.String("cache-control"),
 		PathStyle:    c.Bool("path-style"),
 		DryRun:       c.Bool("dry-run"),
+		TargetRemove: c.String("target-remove"),
 	}
 
 	return plugin.Exec()
