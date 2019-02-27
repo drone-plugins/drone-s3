@@ -4,13 +4,13 @@ import (
 	"mime"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/bmatcuk/doublestar"
 	"github.com/mattn/go-zglob"
 	log "github.com/sirupsen/logrus"
 )
@@ -75,7 +75,7 @@ type Plugin struct {
 	PathStyle bool
 	// Dry run without uploading/
 	DryRun bool
-	// Regex for which files to remove from target
+	// Glob for which files to remove from target
 	TargetRemove string
 }
 
@@ -118,21 +118,12 @@ func (p *Plugin) Exec() error {
 	}
 
 	if len(p.TargetRemove) != 0 {
-		reg, regexperr := regexp.Compile(p.TargetRemove)
-
-		if regexperr != nil {
-			log.WithFields(log.Fields{
-				"error":  regexperr,
-				"regexp": p.TargetRemove,
-			}).Error("Regular expression failed to compile")
-			return regexperr
-		}
 
 		log.WithFields(log.Fields{
-			"regexp": p.TargetRemove,
-		}).Info("Deleting files according to regexp")
+			"glob": p.TargetRemove,
+		}).Info("Deleting files according to glob")
 
-		log.Info("Listing files in bucket") // @ToDo: Log.Debug
+		log.Info("Listing files in bucket")
 		list_input := &s3.ListObjectsInput{
 			Bucket: &p.Bucket,
 		}
@@ -148,7 +139,18 @@ func (p *Plugin) Exec() error {
 		var to_remove []string
 		for _, object := range s3_objects.Contents {
 			filename := object.Key
-			if reg.MatchString(*filename) {
+
+			globmatch, globerr := doublestar.PathMatch(p.TargetRemove, *filename)
+
+			if globerr != nil {
+				log.WithFields(log.Fields{
+					"error": globerr,
+					"glob":  p.TargetRemove,
+				}).Error("Error with provided glob")
+				return globerr
+			}
+
+			if globmatch {
 				to_remove = append(to_remove, *filename)
 			}
 		}

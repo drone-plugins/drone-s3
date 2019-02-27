@@ -100,7 +100,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "target-remove",
-			Usage:  "regex for which files to remove from target",
+			Usage:  "glob for which files to remove from target",
 			EnvVar: "PLUGIN_TARGET_REMOVE",
 		},
 	}
