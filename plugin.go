@@ -124,54 +124,54 @@ func (p *Plugin) Exec() error {
 		}).Info("Deleting files according to glob")
 
 		log.Info("Listing files in bucket")
-		list_input := &s3.ListObjectsInput{
+		listInput := &s3.ListObjectsInput{
 			Bucket: &p.Bucket,
 		}
 
-		s3_objects, list_err := client.ListObjects(list_input)
-		if list_err != nil {
+		s3Objects, err := client.ListObjects(listInput)
+		if err != nil {
 			log.WithFields(log.Fields{
-				"error": list_err,
+				"error": err,
 			}).Error("Error listing objects from bucket")
-			return list_err
+			return err
 		}
 
-		var to_remove []string
-		for _, object := range s3_objects.Contents {
+		var toRemove []string
+		for _, object := range s3Objects.Contents {
 			filename := object.Key
 
-			globmatch, globerr := doublestar.PathMatch(p.TargetRemove, *filename)
+			globmatch, err := doublestar.PathMatch(p.TargetRemove, *filename)
 
-			if globerr != nil {
+			if err != nil {
 				log.WithFields(log.Fields{
-					"error": globerr,
+					"error": err,
 					"glob":  p.TargetRemove,
 				}).Error("Error with provided glob")
-				return globerr
+				return err
 			}
 
 			if globmatch {
-				to_remove = append(to_remove, *filename)
+				toRemove = append(toRemove, *filename)
 			}
 		}
 
-		if len(to_remove) > 0 {
+		if len(toRemove) > 0 {
 			log.WithFields(log.Fields{
-				"num_files": len(to_remove),
+				"num_files": len(toRemove),
 			}).Info("Deleting files from bucket")
 
-			var remove_identifiers []*s3.ObjectIdentifier
-			for _, key := range to_remove {
+			var removeIdentifiers []*s3.ObjectIdentifier
+			for _, key := range toRemove {
 				id := s3.ObjectIdentifier{
 					Key: aws.String(key),
 				}
-				remove_identifiers = append(remove_identifiers, &id)
+				removeIdentifiers = append(removeIdentifiers, &id)
 			}
 
-			delete_input := &s3.DeleteObjectsInput{
+			deleteInput := &s3.DeleteObjectsInput{
 				Bucket: &p.Bucket,
 				Delete: &s3.Delete{
-					Objects: remove_identifiers,
+					Objects: removeIdentifiers,
 					Quiet:   aws.Bool(false),
 				},
 			}
@@ -180,15 +180,15 @@ func (p *Plugin) Exec() error {
 			// want to remove files from S3.
 			if !p.DryRun {
 				log.WithFields(log.Fields{
-					"num_files": len(remove_identifiers),
+					"num_files": len(removeIdentifiers),
 				}).Info("Attempting to delete files")
-				_, delete_err := client.DeleteObjects(delete_input)
+				_, err := client.DeleteObjects(deleteInput)
 
-				if delete_err != nil {
+				if err != nil {
 					log.WithFields(log.Fields{
-						"error": delete_err,
+						"error": err,
 					}).Error("Error deleting objects from S3")
-					return delete_err
+					return err
 				}
 			}
 		}
