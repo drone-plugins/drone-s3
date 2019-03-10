@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/bmatcuk/doublestar"
 	"github.com/mattn/go-zglob"
 	log "github.com/sirupsen/logrus"
 )
@@ -74,6 +75,8 @@ type Plugin struct {
 	PathStyle bool
 	// Dry run without uploading/
 	DryRun bool
+	// Glob for which files to remove from target
+	TargetRemove string
 }
 
 // Exec runs the plugin
@@ -112,6 +115,72 @@ func (p *Plugin) Exec() error {
 			"error": err,
 		}).Error("Could not match files")
 		return err
+	}
+
+	if len(p.TargetRemove) != 0 {
+
+		log.WithFields(log.Fields{
+			"glob": p.TargetRemove,
+		}).Info("Deleting files according to glob")
+
+		log.Info("Listing files in bucket")
+		listInput := &s3.ListObjectsInput{
+			Bucket: &p.Bucket,
+		}
+
+		s3Objects, err := client.ListObjects(listInput)
+		if err != nil {
+			return err
+		}
+
+		var toRemove []string
+		for _, object := range s3Objects.Contents {
+			filename := object.Key
+
+			globmatch, err := doublestar.PathMatch(p.TargetRemove, *filename)
+
+			if err != nil {
+				return err
+			}
+
+			if globmatch {
+				toRemove = append(toRemove, *filename)
+			}
+		}
+
+		if len(toRemove) > 0 {
+			log.WithFields(log.Fields{
+				"files": len(toRemove),
+			}).Info("Deleting files from bucket")
+
+			var removeIdentifiers []*s3.ObjectIdentifier
+			for _, key := range toRemove {
+				id := s3.ObjectIdentifier{
+					Key: aws.String(key),
+				}
+				removeIdentifiers = append(removeIdentifiers, &id)
+			}
+
+			deleteInput := &s3.DeleteObjectsInput{
+				Bucket: &p.Bucket,
+				Delete: &s3.Delete{
+					Objects: removeIdentifiers,
+					Quiet:   aws.Bool(false),
+				},
+			}
+
+			// when executing a dry-run we skip this step because we don't actually
+			// want to remove files from S3.
+			if !p.DryRun {
+				log.WithFields(log.Fields{
+					"files": len(removeIdentifiers),
+				}).Info("Attempting to delete files")
+
+				if _, err := client.DeleteObjects(deleteInput); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	for _, match := range matches {
