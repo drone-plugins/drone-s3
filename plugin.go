@@ -182,9 +182,7 @@ func (p *Plugin) Exec() error {
 				log.WithFields(log.Fields{
 					"files": len(removeIdentifiers),
 				}).Info("Attempting to delete files")
-				_, err := client.DeleteObjects(deleteInput)
-
-				if err != nil {
+				if _, err := client.DeleteObjects(deleteInput); err != nil {
 					log.WithFields(log.Fields{
 						"error": err,
 					}).Error("Error deleting objects from S3")
