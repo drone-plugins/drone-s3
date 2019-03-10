@@ -130,9 +130,6 @@ func (p *Plugin) Exec() error {
 
 		s3Objects, err := client.ListObjects(listInput)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-			}).Error("Error listing objects from bucket")
 			return err
 		}
 
@@ -143,10 +140,6 @@ func (p *Plugin) Exec() error {
 			globmatch, err := doublestar.PathMatch(p.TargetRemove, *filename)
 
 			if err != nil {
-				log.WithFields(log.Fields{
-					"error": err,
-					"glob":  p.TargetRemove,
-				}).Error("Error with provided glob")
 				return err
 			}
 
@@ -182,10 +175,8 @@ func (p *Plugin) Exec() error {
 				log.WithFields(log.Fields{
 					"files": len(removeIdentifiers),
 				}).Info("Attempting to delete files")
+
 				if _, err := client.DeleteObjects(deleteInput); err != nil {
-					log.WithFields(log.Fields{
-						"error": err,
-					}).Error("Error deleting objects from S3")
 					return err
 				}
 			}
