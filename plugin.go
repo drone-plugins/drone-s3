@@ -157,7 +157,7 @@ func (p *Plugin) Exec() error {
 
 		if len(toRemove) > 0 {
 			log.WithFields(log.Fields{
-				"num_files": len(toRemove),
+				"files": len(toRemove),
 			}).Info("Deleting files from bucket")
 
 			var removeIdentifiers []*s3.ObjectIdentifier
@@ -180,7 +180,7 @@ func (p *Plugin) Exec() error {
 			// want to remove files from S3.
 			if !p.DryRun {
 				log.WithFields(log.Fields{
-					"num_files": len(removeIdentifiers),
+					"files": len(removeIdentifiers),
 				}).Info("Attempting to delete files")
 				_, err := client.DeleteObjects(deleteInput)
 
