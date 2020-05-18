@@ -4,6 +4,7 @@ import (
 	"mime"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -47,8 +48,14 @@ type Plugin struct {
 	//     bucket-owner-full-control
 	Access string
 
-	// Sets the Cache-Control header on each uploaded object
-	CacheControl string
+	// Sets the content type on each uploaded object based on a extension map
+	ContentType map[string]string
+
+	// Sets the content encoding on each uploaded object based on a extension map
+	ContentEncoding map[string]string
+
+	// Sets the Cache-Control header on each uploaded object based on a extension map
+	CacheControl map[string]string
 
 	// Copies the files from the specified directory.
 	// Regexp matching will apply to match multiple
@@ -131,16 +138,23 @@ func (p *Plugin) Exec() error {
 			target = "/" + target
 		}
 
-		// amazon S3 has pretty crappy default content-type headers so this pluign
-		// attempts to provide a proper content-type.
-		content := contentType(match)
+		contentType := matchExtension(match, p.ContentType)
+		contentEncoding := matchExtension(match, p.ContentEncoding)
+		cacheControl := matchExtension(match, p.CacheControl)
+
+		if contentType == "" {
+			contentType = mime.TypeByExtension(filepath.Ext(match))
+
+			if contentType == "" {
+				contentType = "application/octet-stream"
+			}
+		}
 
 		// log file for debug purposes.
 		log.WithFields(log.Fields{
-			"name":         match,
-			"bucket":       p.Bucket,
-			"target":       target,
-			"content-type": content,
+			"name":   match,
+			"bucket": p.Bucket,
+			"target": target,
 		}).Info("Uploading file")
 
 		// when executing a dry-run we exit because we don't actually want to
@@ -160,19 +174,26 @@ func (p *Plugin) Exec() error {
 		defer f.Close()
 
 		putObjectInput := &s3.PutObjectInput{
-			Body:        f,
-			Bucket:      &(p.Bucket),
-			Key:         &target,
-			ACL:         &(p.Access),
-			ContentType: &content,
+			Body:   f,
+			Bucket: &(p.Bucket),
+			Key:    &target,
+			ACL:    &(p.Access),
+		}
+
+		if contentType != "" {
+			putObjectInput.ContentType = aws.String(contentType)
+		}
+
+		if contentEncoding != "" {
+			putObjectInput.ContentEncoding = aws.String(contentEncoding)
+		}
+
+		if cacheControl != "" {
+			putObjectInput.CacheControl = aws.String(cacheControl)
 		}
 
 		if p.Encryption != "" {
-			putObjectInput.ServerSideEncryption = &(p.Encryption)
-		}
-
-		if p.CacheControl != "" {
-			putObjectInput.CacheControl = &(p.CacheControl)
+			putObjectInput.ServerSideEncryption = aws.String(p.Encryption)
 		}
 
 		_, err = client.PutObject(putObjectInput)
@@ -229,14 +250,18 @@ func matches(include string, exclude []string) ([]string, error) {
 	return included, nil
 }
 
-// contentType is a helper function that returns the content type for the file
-// based on extension. If the file extension is unknown application/octet-stream
-// is returned.
-func contentType(path string) string {
-	ext := filepath.Ext(path)
-	typ := mime.TypeByExtension(ext)
-	if typ == "" {
-		typ = "application/octet-stream"
+func matchExtension(match string, stringMap map[string]string) string {
+	for pattern := range stringMap {
+		matched, err := regexp.MatchString(pattern, match)
+
+		if err != nil {
+			panic(err)
+		}
+
+		if matched {
+			return stringMap[pattern]
+		}
 	}
-	return typ
+
+	return ""
 }
