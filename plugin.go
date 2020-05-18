@@ -57,6 +57,9 @@ type Plugin struct {
 	// Sets the Cache-Control header on each uploaded object based on a extension map
 	CacheControl map[string]string
 
+	// Sets the storage class, affects the storage backend costs
+	StorageClass string
+
 	// Copies the files from the specified directory.
 	// Regexp matching will apply to match multiple
 	// files
@@ -194,6 +197,10 @@ func (p *Plugin) Exec() error {
 
 		if p.Encryption != "" {
 			putObjectInput.ServerSideEncryption = aws.String(p.Encryption)
+		}
+
+		if p.StorageClass != "" {
+			putObjectInput.StorageClass = &(p.StorageClass)
 		}
 
 		_, err = client.PutObject(putObjectInput)
