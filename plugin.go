@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mattn/go-zglob"
@@ -17,10 +18,11 @@ import (
 
 // Plugin defines the S3 plugin parameters.
 type Plugin struct {
-	Endpoint string
-	Key      string
-	Secret   string
-	Bucket   string
+	Endpoint    string
+	Key         string
+	UserRoleArn string
+	Secret      string
+	Bucket      string
 
 	// if not "", enable server-side encryption
 	// valid values are:
@@ -104,7 +106,27 @@ func (p *Plugin) Exec() error {
 		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
 	}
 
-	client := s3.New(session.New(), conf)
+	var client *s3.S3
+	sess, err := session.NewSession(conf)
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Error("Could not instantiate session")
+		return err
+	}
+
+	// If user role ARN is set then assume role here
+	if len(p.UserRoleArn) > 0 {
+		confRoleArn := aws.Config{
+			Region:      aws.String(p.Region),
+			Credentials: stscreds.NewCredentials(sess, p.UserRoleArn),
+		}
+
+		client = s3.New(sess, &confRoleArn)
+	} else {
+		client = s3.New(sess)
+	}
 
 	// find the bucket
 	log.WithFields(log.Fields{

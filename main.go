@@ -37,6 +37,11 @@ func main() {
 			EnvVar: "PLUGIN_SECRET_KEY,AWS_SECRET_ACCESS_KEY",
 		},
 		cli.StringFlag{
+			Name:   "user-role-arn",
+			Usage:  "AWS user role",
+			EnvVar: "PLUGIN_USER_ROLE_ARN,AWS_USER_ROLE_ARN",
+		},
+		cli.StringFlag{
 			Name:   "bucket",
 			Usage:  "aws bucket",
 			Value:  "us-east-1",
@@ -126,6 +131,7 @@ func run(c *cli.Context) error {
 	plugin := Plugin{
 		Endpoint:        c.String("endpoint"),
 		Key:             c.String("access-key"),
+		UserRoleArn:     c.String("user-role-arn"),
 		Secret:          c.String("secret-key"),
 		Bucket:          c.String("bucket"),
 		Region:          c.String("region"),
