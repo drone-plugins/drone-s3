@@ -26,6 +26,7 @@ type Plugin struct {
 	AssumeRole            string
 	AssumeRoleSessionName string
 	Bucket                string
+	UserRoleArn           string
 
 	// if not "", enable server-side encryption
 	// valid values are:
@@ -114,13 +115,24 @@ func (p *Plugin) Exec() error {
 		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
 	}
 
+	var client *s3.S3
 	sess, err := session.NewSession(conf)
 	if err != nil {
 		log.WithError(err).Errorln("could not instantiate session")
 		return err
 	}
 
-	client := s3.New(sess)
+	// If user role ARN is set then assume role here
+	if len(p.UserRoleArn) > 0 {
+		confRoleArn := aws.Config{
+			Region:      aws.String(p.Region),
+			Credentials: stscreds.NewCredentials(sess, p.UserRoleArn),
+		}
+
+		client = s3.New(sess, &confRoleArn)
+	} else {
+		client = s3.New(sess)
+	}
 
 	// find the bucket
 	log.WithFields(log.Fields{

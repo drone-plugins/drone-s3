@@ -48,6 +48,11 @@ func main() {
 			EnvVar: "PLUGIN_ASSUME_ROLE_SESSION_NAME,ASSUME_ROLE_SESSION_NAME",
 		},
 		cli.StringFlag{
+			Name:   "user-role-arn",
+			Usage:  "AWS user role",
+			EnvVar: "PLUGIN_USER_ROLE_ARN,AWS_USER_ROLE_ARN",
+		},
+		cli.StringFlag{
 			Name:   "bucket",
 			Usage:  "aws bucket",
 			Value:  "us-east-1",
@@ -146,6 +151,7 @@ func run(c *cli.Context) error {
 		AssumeRole:            c.String("assume-role"),
 		AssumeRoleSessionName: c.String("assume-role-session-name"),
 		Bucket:                c.String("bucket"),
+		UserRoleArn:           c.String("user-role-arn"),
 		Region:                c.String("region"),
 		Access:                c.String("acl"),
 		Source:                c.String("source"),
