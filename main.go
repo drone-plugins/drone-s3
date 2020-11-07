@@ -108,6 +108,11 @@ func main() {
 			Value:  &StringMapFlag{},
 		},
 		cli.StringFlag{
+			Name:   "storage-class",
+			Usage:  "set storage class to choose the best backend",
+			EnvVar: "PLUGIN_STORAGE_CLASS",
+		},
+		cli.StringFlag{
 			Name:  "env-file",
 			Usage: "source env file",
 		},
@@ -138,6 +143,7 @@ func run(c *cli.Context) error {
 		ContentType:     c.Generic("content-type").(*StringMapFlag).Get(),
 		ContentEncoding: c.Generic("content-encoding").(*StringMapFlag).Get(),
 		CacheControl:    c.Generic("cache-control").(*StringMapFlag).Get(),
+		StorageClass:    c.String("storage-class"),
 		PathStyle:       c.Bool("path-style"),
 		DryRun:          c.Bool("dry-run"),
 	}
