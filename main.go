@@ -79,6 +79,11 @@ func main() {
 			Usage:  "server-side encryption algorithm, defaults to none",
 			EnvVar: "PLUGIN_ENCRYPTION",
 		},
+		cli.StringFlag{
+			Name:   "encryption-key",
+			Usage:  "server-side encryption key, defaults to none",
+			EnvVar: "PLUGIN_ENCRYPTION_KEY",
+		},
 		cli.BoolFlag{
 			Name:   "dry-run",
 			Usage:  "dry run for debug purposes",
@@ -140,6 +145,7 @@ func run(c *cli.Context) error {
 		StripPrefix:     c.String("strip-prefix"),
 		Exclude:         c.StringSlice("exclude"),
 		Encryption:      c.String("encryption"),
+		EncryptionKey:   c.String("encryption-key"),
 		ContentType:     c.Generic("content-type").(*StringMapFlag).Get(),
 		ContentEncoding: c.Generic("content-encoding").(*StringMapFlag).Get(),
 		CacheControl:    c.Generic("cache-control").(*StringMapFlag).Get(),

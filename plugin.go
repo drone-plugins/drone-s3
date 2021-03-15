@@ -28,6 +28,10 @@ type Plugin struct {
 	//     aws:kms
 	Encryption string
 
+	// if not "" and encryption aws:kms
+	// pass key to aws
+	EncryptionKey string
+
 	// us-east-1
 	// us-west-1
 	// us-west-2
@@ -197,6 +201,12 @@ func (p *Plugin) Exec() error {
 
 		if p.Encryption != "" {
 			putObjectInput.ServerSideEncryption = aws.String(p.Encryption)
+
+			if p.Encryption == "aws:kms" {
+				if p.EncryptionKey != "" {
+					putObjectInput.SSEKMSKeyId = aws.String(p.EncryptionKey)
+				}
+			}
 		}
 
 		if p.StorageClass != "" {
