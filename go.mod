@@ -1,5 +1,7 @@
 module github.com/drone-plugins/drone-s3
 
+go 1.15
+
 require (
 	github.com/aws/aws-sdk-go v1.16.17
 	github.com/joho/godotenv v1.3.0

@@ -6,21 +6,26 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/mattn/go-zglob"
 	log "github.com/sirupsen/logrus"
 )
 
 // Plugin defines the S3 plugin parameters.
 type Plugin struct {
-	Endpoint string
-	Key      string
-	Secret   string
-	Bucket   string
+	Endpoint              string
+	Key                   string
+	Secret                string
+	AssumeRole            string
+	AssumeRoleSessionName string
+	Bucket                string
 
 	// if not "", enable server-side encryption
 	// valid values are:
@@ -103,6 +108,8 @@ func (p *Plugin) Exec() error {
 
 	if p.Key != "" && p.Secret != "" {
 		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
+	} else if p.AssumeRole != "" {
+		conf.Credentials = assumeRole(p.AssumeRole, p.AssumeRoleSessionName)
 	} else {
 		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
 	}
@@ -271,4 +278,17 @@ func matchExtension(match string, stringMap map[string]string) string {
 	}
 
 	return ""
+}
+
+func assumeRole(roleArn, roleSessionName string) *credentials.Credentials {
+	client := sts.New(session.New())
+	duration := time.Hour * 1
+	stsProvider := &stscreds.AssumeRoleProvider{
+		Client:          client,
+		Duration:        duration,
+		RoleARN:         roleArn,
+		RoleSessionName: roleSessionName,
+	}
+
+	return credentials.NewCredentials(stsProvider)
 }
