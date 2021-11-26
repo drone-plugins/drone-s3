@@ -148,6 +148,10 @@ func (p *Plugin) Exec() error {
 			target = "/" + target
 		}
 
+        if string(os.PathSeparator) == "\\" {
+            target = strings.Replace(target, "\\", "/", -1)
+        }
+
 		contentType := matchExtension(match, p.ContentType)
 		contentEncoding := matchExtension(match, p.ContentEncoding)
 		cacheControl := matchExtension(match, p.CacheControl)
