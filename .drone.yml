@@ -290,7 +290,7 @@ steps:
   - |
     if (Test-Path env:DRONE_SEMVER_SHORT) {
       docker build -f docker/Dockerfile.windows.1809 -t plugins/s3:$env:DRONE_SEMVER_SHORT-windows-1809-amd64 .
-      docker push plugins/s3:v$env:DRONE_SEMVER_SHORT-windows-1809-amd64
+      docker push plugins/s3:$env:DRONE_SEMVER_SHORT-windows-1809-amd64
     } else {
       docker build -f docker/Dockerfile.windows.1809 -t plugins/s3:windows-1809-amd64 .
       docker push plugins/s3:windows-1809-amd64
@@ -334,7 +334,7 @@ steps:
   - |
     if (Test-Path env:DRONE_SEMVER_SHORT) {
       docker build -f docker/Dockerfile.windows.1903 -t plugins/s3:$env:DRONE_SEMVER_SHORT-windows-1903-amd64 .
-      docker push plugins/s3:v$env:DRONE_SEMVER_SHORT-windows-1903-amd64
+      docker push plugins/s3:$env:DRONE_SEMVER_SHORT-windows-1903-amd64
     } else {
       docker build -f docker/Dockerfile.windows.1903 -t plugins/s3:windows-1903-amd64 .
       docker push plugins/s3:windows-1903-amd64
