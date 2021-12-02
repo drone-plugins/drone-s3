@@ -114,7 +114,13 @@ func (p *Plugin) Exec() error {
 		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
 	}
 
-	client := s3.New(session.New(), conf)
+	sess, err := session.NewSession(conf)
+	if err != nil {
+		log.WithError(err).Errorln("could not instantiate session")
+		return err
+	}
+
+	client := s3.New(sess)
 
 	// find the bucket
 	log.WithFields(log.Fields{
