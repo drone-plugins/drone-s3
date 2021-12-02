@@ -365,9 +365,10 @@ platform:
 steps:
 - name: manifest
   pull: always
-  image: plugins/manifest:1
+  image: plugins/manifest
   settings:
-    ignore_missing: true
+    ignore_missing: "true"
+    auto_tag: "true"
     password:
       from_secret: docker_password
     spec: docker/manifest.tmpl
