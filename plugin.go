@@ -116,9 +116,7 @@ func (p *Plugin) Exec() error {
 
 	sess, err := session.NewSession(conf)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Could not instantiate session")
+		log.WithError(err).Errorln("could not instantiate session")
 		return err
 	}
 

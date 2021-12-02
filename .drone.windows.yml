@@ -9,7 +9,7 @@ platform:
 steps:
 - name: build-push
   pull: always
-  image: golang:1.11
+  image: golang:1.17.3
   commands:
   - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/windows/amd64/drone-s3"
   environment:
@@ -22,7 +22,7 @@ steps:
 
 - name: build-tag
   pull: always
-  image: golang:1.11
+  image: golang:1.17.3
   commands:
   - "go build -v -ldflags \"-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/windows/amd64/drone-s3"
   environment:
@@ -34,7 +34,7 @@ steps:
 
 - name: executable
   pull: always
-  image: golang:1.11
+  image: golang:1.17.3
   commands:
   - ./release/windows/amd64/drone-s3 --help
 
