@@ -1,0 +1,13 @@
+# escape=`
+FROM mcr.microsoft.com/windows/nanoserver:1903
+USER ContainerAdministrator
+
+ENV GODEBUG=netdns=go
+
+LABEL maintainer="Drone.IO Community <drone-dev@googlegroups.com>" `
+  org.label-schema.name="Drone S3" `
+  org.label-schema.vendor="Drone.IO Community" `
+  org.label-schema.schema-version="1.0"
+
+ADD release/windows/amd64/drone-s3.exe C:/drone-s3.exe
+ENTRYPOINT [ "C:\\drone-s3.exe" ]
