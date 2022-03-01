@@ -10,5 +10,4 @@ LABEL maintainer="Drone.IO Community <drone-dev@googlegroups.com>" \
 
 ADD drone-s3 /bin/drone-s3
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-#RUN apk add -U --no-cache ca-certificates
 ENTRYPOINT ["/bin/drone-s3"]
