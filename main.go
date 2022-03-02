@@ -39,7 +39,7 @@ func main() {
 		cli.StringFlag{
 			Name:   "assume-role",
 			Usage:  "aws iam role to assume",
-			EnvVar: "PLUGIN_ASSUME_ROLE,ASSUME_ROLE",
+			EnvVar: "PLUGIN_ASSUME_ROLE,PLUGIN_ASSUME_ROLE_ARN,ASSUME_ROLE",
 		},
 		cli.StringFlag{
 			Name:   "assume-role-session-name",
