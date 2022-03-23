@@ -149,6 +149,7 @@ func (p *Plugin) Exec() error {
 		return err
 	}
 
+	stripPrefix := filepath.ToSlash(p.StripPrefix)
 	for _, match := range matches {
 
 		stat, err := os.Stat(match)
@@ -161,7 +162,8 @@ func (p *Plugin) Exec() error {
 			continue
 		}
 
-		target := filepath.Join(p.Target, strings.TrimPrefix(match, p.StripPrefix))
+		target := filepath.Join(p.Target, strings.TrimPrefix(match, stripPrefix))
+		target = filepath.ToSlash(target)
 		if !strings.HasPrefix(target, "/") {
 			target = "/" + target
 		}
