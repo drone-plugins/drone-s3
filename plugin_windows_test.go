@@ -38,7 +38,7 @@ func TestResolveWinKey(t *testing.T) {
 		{
 			name:        "backslash src path",
 			target:      "hello",
-			srcPath:     "foo\bar",
+			srcPath:     `foo\bar`,
 			stripPrefix: "",
 			expected:    "/hello/foo/bar",
 		},
@@ -46,7 +46,7 @@ func TestResolveWinKey(t *testing.T) {
 			name:        "backslash src path and strip prefix",
 			target:      "hello",
 			srcPath:     `foo\bar\world`,
-			stripPrefix: "foo\bar",
+			stripPrefix: `foo\bar`,
 			expected:    "/hello/world",
 		},
 		{
@@ -60,7 +60,7 @@ func TestResolveWinKey(t *testing.T) {
 			name:        "forward slash src path and backslash strip prefix",
 			target:      "hello",
 			srcPath:     "foo/bar/world",
-			stripPrefix: "foo\bar",
+			stripPrefix: `foo\bar`,
 			expected:    "/hello/world",
 		},
 	}
