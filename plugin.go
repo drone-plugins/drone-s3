@@ -149,7 +149,6 @@ func (p *Plugin) Exec() error {
 		return err
 	}
 
-	stripPrefix := filepath.ToSlash(p.StripPrefix)
 	for _, match := range matches {
 
 		stat, err := os.Stat(match)
@@ -162,11 +161,7 @@ func (p *Plugin) Exec() error {
 			continue
 		}
 
-		target := filepath.Join(p.Target, strings.TrimPrefix(match, stripPrefix))
-		target = filepath.ToSlash(target)
-		if !strings.HasPrefix(target, "/") {
-			target = "/" + target
-		}
+		target := resolveKey(p.Target, match, p.StripPrefix)
 
 		contentType := matchExtension(match, p.ContentType)
 		contentEncoding := matchExtension(match, p.ContentEncoding)
@@ -311,4 +306,14 @@ func assumeRole(roleArn, roleSessionName string) *credentials.Credentials {
 	}
 
 	return credentials.NewCredentials(stsProvider)
+}
+
+// resolveKey is a helper function that returns s3 object key where file present at srcPath is uploaded to.
+func resolveKey(target, srcPath, stripPrefix string) string {
+	key := filepath.Join(target, strings.TrimPrefix(srcPath, filepath.ToSlash(stripPrefix)))
+	key = filepath.ToSlash(key)
+	if !strings.HasPrefix(key, "/") {
+		key = "/" + key
+	}
+	return key
 }
