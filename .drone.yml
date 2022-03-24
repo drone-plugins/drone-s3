@@ -286,6 +286,7 @@ steps:
 - name: build
   commands:
   - go build -o release/windows/amd64/drone-s3.exe
+  - go test -cover ./...
   - docker login -u $env:USERNAME -p $env:PASSWORD
   - |
     if (Test-Path env:DRONE_SEMVER_SHORT) {
@@ -330,6 +331,7 @@ steps:
   commands:
   - echo $env:DRONE_SEMVER_SHORT
   - go build -o release/windows/amd64/drone-s3.exe
+  - go test -cover ./...
   - docker login -u $env:USERNAME -p $env:PASSWORD
   - |
     if (Test-Path env:DRONE_SEMVER_SHORT) {
