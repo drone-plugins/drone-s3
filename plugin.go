@@ -309,6 +309,7 @@ func assumeRole(roleArn, roleSessionName string) *credentials.Credentials {
 }
 
 // resolveKey is a helper function that returns s3 object key where file present at srcPath is uploaded to.
+// srcPath is assumed to be in forward slash format
 func resolveKey(target, srcPath, stripPrefix string) string {
 	key := filepath.Join(target, strings.TrimPrefix(srcPath, filepath.ToSlash(stripPrefix)))
 	key = filepath.ToSlash(key)
