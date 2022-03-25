@@ -222,6 +222,36 @@ depends_on:
 ---
 kind: pipeline
 type: ssh
+name: windows-1809-amd64-pull-request
+
+platform:
+  os: windows
+
+server:
+  host: windows.1809.amd64.plugins.drone.ci
+  password:
+    from_secret: windows_password
+  user:
+    from_secret: windows_username
+
+steps:
+- name: build
+  commands:
+  - go build -o release/windows/amd64/drone-s3.exe
+  - go test -cover ./...
+  environment:
+    CGO_ENABLED: "0"
+
+trigger:
+  event:
+  - push
+
+depends_on:
+- testing
+
+---
+kind: pipeline
+type: ssh
 name: windows-1809-amd64
 
 platform:
@@ -256,9 +286,9 @@ steps:
       from_secret: docker_password
 
 trigger:
-  event:
-  - push
-  - tag
+  ref:
+  - refs/heads/master
+  - refs/tags/*
 
 depends_on:
 - testing
@@ -301,9 +331,9 @@ steps:
       from_secret: docker_password
 
 trigger:
-  event:
-  - push
-  - tag
+  ref:
+  - refs/heads/master
+  - refs/tags/*
 
 depends_on:
 - testing
