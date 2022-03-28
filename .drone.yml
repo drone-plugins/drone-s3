@@ -248,7 +248,6 @@ trigger:
 
 depends_on:
 - testing
-
 ---
 kind: pipeline
 type: ssh
