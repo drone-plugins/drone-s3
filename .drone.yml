@@ -67,22 +67,6 @@ steps:
   commands:
   - ./release/linux/amd64/drone-s3 --help
 
-- name: dryrun
-  pull: always
-  image: plugins/docker:linux-amd64
-  settings:
-    dockerfile: docker/Dockerfile.linux.amd64
-    dry_run: true
-    password:
-      from_secret: docker_password
-    repo: plugins/s3
-    tags: linux-amd64
-    username:
-      from_secret: docker_username
-  when:
-    event:
-    - pull_request
-
 - name: publish
   pull: always
   image: plugins/docker:linux-amd64
@@ -146,22 +130,6 @@ steps:
   image: golang:1.17.3
   commands:
   - ./release/linux/arm64/drone-s3 --help
-
-- name: dryrun
-  pull: always
-  image: plugins/docker:linux-arm64
-  settings:
-    dockerfile: docker/Dockerfile.linux.arm64
-    dry_run: true
-    password:
-      from_secret: docker_password
-    repo: plugins/s3
-    tags: linux-arm64
-    username:
-      from_secret: docker_username
-  when:
-    event:
-    - pull_request
 
 - name: publish
   pull: always
@@ -227,22 +195,6 @@ steps:
   commands:
   - ./release/linux/arm/drone-s3 --help
 
-- name: dryrun
-  pull: always
-  image: plugins/docker:linux-arm
-  settings:
-    dockerfile: docker/Dockerfile.linux.arm
-    dry_run: true
-    password:
-      from_secret: docker_password
-    repo: plugins/s3
-    tags: linux-arm
-    username:
-      from_secret: docker_username
-  when:
-    event:
-    - pull_request
-
 - name: publish
   pull: always
   image: plugins/docker:linux-arm
@@ -270,6 +222,35 @@ depends_on:
 ---
 kind: pipeline
 type: ssh
+name: windows-1809-amd64-pull-request
+
+platform:
+  os: windows
+
+server:
+  host: windows.1809.amd64.plugins.drone.ci
+  password:
+    from_secret: windows_password
+  user:
+    from_secret: windows_username
+
+steps:
+- name: build
+  commands:
+  - go build -o release/windows/amd64/drone-s3.exe
+  - go test -cover ./...
+  environment:
+    CGO_ENABLED: "0"
+
+trigger:
+  event:
+  - push
+
+depends_on:
+- testing
+---
+kind: pipeline
+type: ssh
 name: windows-1809-amd64
 
 platform:
@@ -286,6 +267,7 @@ steps:
 - name: build
   commands:
   - go build -o release/windows/amd64/drone-s3.exe
+  - go test -cover ./...
   - docker login -u $env:USERNAME -p $env:PASSWORD
   - |
     if (Test-Path env:DRONE_SEMVER_SHORT) {
@@ -303,9 +285,9 @@ steps:
       from_secret: docker_password
 
 trigger:
-  event:
-  - push
-  - tag
+  ref:
+  - refs/heads/master
+  - refs/tags/*
 
 depends_on:
 - testing
@@ -330,6 +312,7 @@ steps:
   commands:
   - echo $env:DRONE_SEMVER_SHORT
   - go build -o release/windows/amd64/drone-s3.exe
+  - go test -cover ./...
   - docker login -u $env:USERNAME -p $env:PASSWORD
   - |
     if (Test-Path env:DRONE_SEMVER_SHORT) {
@@ -347,9 +330,9 @@ steps:
       from_secret: docker_password
 
 trigger:
-  event:
-  - push
-  - tag
+  ref:
+  - refs/heads/master
+  - refs/tags/*
 
 depends_on:
 - testing
