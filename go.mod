@@ -3,7 +3,7 @@ module github.com/drone-plugins/drone-s3
 go 1.17
 
 require (
-	github.com/aws/aws-sdk-go v1.44.43
+	github.com/aws/aws-sdk-go v1.44.46
 	github.com/joho/godotenv v1.4.0
 	github.com/mattn/go-zglob v0.0.3
 	github.com/sirupsen/logrus v1.8.1
