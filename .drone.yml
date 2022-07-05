@@ -9,7 +9,7 @@ platform:
 steps:
 - name: vet
   pull: always
-  image: golang:1.17.8
+  image: golang:1.18.3
   commands:
   - go vet ./...
   environment:
@@ -17,7 +17,7 @@ steps:
 
 - name: test
   pull: always
-  image: golang:1.17.8
+  image: golang:1.18.3
   commands:
   - go test -cover ./...
   environment:
@@ -38,7 +38,7 @@ platform:
 steps:
 - name: build-push
   pull: always
-  image: golang:1.17.8
+  image: golang:1.18.3
   commands:
   - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/amd64/drone-s3"
   environment:
@@ -51,7 +51,7 @@ steps:
 
 - name: build-tag
   pull: always
-  image: golang:1.17.8
+  image: golang:1.18.3
   commands:
   - "go build -v -ldflags \"-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/amd64/drone-s3"
   environment:
@@ -63,7 +63,7 @@ steps:
 
 - name: executable
   pull: always
-  image: golang:1.17.8
+  image: golang:1.18.3
   commands:
   - ./release/linux/amd64/drone-s3 --help
 
@@ -102,7 +102,7 @@ platform:
 steps:
 - name: build-push
   pull: always
-  image: golang:1.17.8
+  image: golang:1.18.3
   commands:
   - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm64/drone-s3"
   environment:
@@ -115,7 +115,7 @@ steps:
 
 - name: build-tag
   pull: always
-  image: golang:1.17.8
+  image: golang:1.18.3
   commands:
   - "go build -v -ldflags \"-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm64/drone-s3"
   environment:
@@ -127,7 +127,7 @@ steps:
 
 - name: executable
   pull: always
-  image: golang:1.17.8
+  image: golang:1.18.3
   commands:
   - ./release/linux/arm64/drone-s3 --help
 
@@ -166,7 +166,7 @@ platform:
 steps:
 - name: build-push
   pull: always
-  image: golang:1.17.8
+  image: golang:1.18.3
   commands:
   - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm/drone-s3"
   environment:
@@ -179,7 +179,7 @@ steps:
 
 - name: build-tag
   pull: always
-  image: golang:1.17.8
+  image: golang:1.18.3
   commands:
   - "go build -v -ldflags \"-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm/drone-s3"
   environment:
@@ -191,7 +191,7 @@ steps:
 
 - name: executable
   pull: always
-  image: golang:1.17.8
+  image: golang:1.18.3
   commands:
   - ./release/linux/arm/drone-s3 --help
 
