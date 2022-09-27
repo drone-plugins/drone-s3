@@ -96,6 +96,11 @@ func main() {
 			EnvVar: "PLUGIN_ENCRYPTION",
 		},
 		cli.BoolFlag{
+			Name:   "download",
+			Usage:  "switch to download mode, which will fetch `target`'s files from s3 bucket and place them according to `strip-prefix`",
+			EnvVar: "PLUGIN_DOWNLOAD",
+		},
+		cli.BoolFlag{
 			Name:   "dry-run",
 			Usage:  "dry run for debug purposes",
 			EnvVar: "PLUGIN_DRY_RUN",
@@ -164,6 +169,7 @@ func run(c *cli.Context) error {
 		CacheControl:          c.Generic("cache-control").(*StringMapFlag).Get(),
 		StorageClass:          c.String("storage-class"),
 		PathStyle:             c.Bool("path-style"),
+		Download:              c.Bool("download"),
 		DryRun:                c.Bool("dry-run"),
 	}
 
