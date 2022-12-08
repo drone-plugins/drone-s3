@@ -95,9 +95,7 @@ type Plugin struct {
 // Exec runs the plugin
 func (p *Plugin) Exec() error {
 	// normalize the target URL
-	if strings.HasPrefix(p.Target, "/") {
-		p.Target = p.Target[1:]
-	}
+	p.Target = strings.TrimPrefix(p.Target, "/")
 
 	// create the client
 	conf := &aws.Config{
@@ -296,7 +294,8 @@ func matchExtension(match string, stringMap map[string]string) string {
 }
 
 func assumeRole(roleArn, roleSessionName string) *credentials.Credentials {
-	client := sts.New(session.New())
+	sess, _ := session.NewSession()
+	client := sts.New(sess)
 	duration := time.Hour * 1
 	stsProvider := &stscreds.AssumeRoleProvider{
 		Client:          client,
