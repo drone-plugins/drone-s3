@@ -149,7 +149,7 @@ func (p *Plugin) Exec() error {
 
 	for _, match := range matches {
 		// skip directories
-		if IsDir(match, matches) {
+		if isDir(match, matches) {
 			continue
 		}
 
@@ -313,7 +313,7 @@ func resolveKey(target, srcPath, stripPrefix string) string {
 }
 
 // checks if the source path is a dir
-func IsDir(source string, matches []string) bool {
+func isDir(source string, matches []string) bool {
 	stat, err := os.Stat(source)
 	if err != nil {
 		return true // should never happen
