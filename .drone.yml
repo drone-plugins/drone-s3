@@ -36,13 +36,10 @@ trigger:
 
 ---
 kind: pipeline
-type: vm
 name: linux-amd64
 platform:
   os: linux
   arch: amd64
-pool:
-  use: ubuntu
 
 steps:
   - name: environment
