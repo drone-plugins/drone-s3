@@ -121,7 +121,31 @@ trigger:
     - refs/heads/master
     - refs/tags/**
     - refs/pull/**
+---
+kind: pipeline
+type: vm
+name: linux-arm
 
+platform:
+  os: linux
+  arch: arm
+
+pool:
+  use: ubuntu-arm
+
+steps:
+  - name: build-push
+    pull: always
+    image: golang:1.17.3
+    commands:
+      - "go build -v -ldflags \"-X main.build=${DRONE_BUILD_NUMBER}\" -a -o release/linux/arm/drone-s3"
+    environment:
+      CGO_ENABLED: 0
+      GO111MODULE: on
+    when:
+      event:
+        - push
+        - pull_request
 ---
 kind: pipeline
 type: vm
