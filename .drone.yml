@@ -1,5 +1,5 @@
 kind: pipeline
-type: vm
+type: docker
 name: testing
 platform:
   os: linux
@@ -36,13 +36,11 @@ trigger:
 
 ---
 kind: pipeline
-type: vm
+type: docker
 name: linux-amd64
 platform:
   os: linux
   arch: amd64
-pool:
-  use: ubuntu
 
 steps:
   - name: environment
@@ -80,7 +78,7 @@ trigger:
 
 ---
 kind: pipeline
-type: docker
+type: vm
 name: linux-arm64
 platform:
   os: linux
@@ -224,13 +222,11 @@ trigger:
 
 ---
 kind: pipeline
-type: vm
+type: docker
 name: manifest
 platform:
   os: linux
   arch: amd64
-pool:
-  use: ubuntu
 
 steps:
   - name: manifest
