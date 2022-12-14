@@ -1,11 +1,8 @@
 kind: pipeline
-type: vm
 name: testing
 platform:
   os: linux
   arch: amd64
-pool:
-  use: ubuntu
 
 steps:
   - name: lint
@@ -140,6 +137,8 @@ steps:
       event:
         - push
         - pull_request
+depends_on:
+  - testing
 ---
 kind: pipeline
 type: vm
