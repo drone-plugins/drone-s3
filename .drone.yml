@@ -4,8 +4,6 @@ name: testing
 platform:
   os: linux
   arch: amd64
-pool:
-  use: ubuntu
 
 steps:
   - name: lint
@@ -78,13 +76,11 @@ trigger:
 
 ---
 kind: pipeline
-type: vm
+type: docker
 name: linux-arm64
 platform:
   os: linux
   arch: arm64
-pool:
-  use: ubuntu_arm64
 
 steps:
   - name: environment
