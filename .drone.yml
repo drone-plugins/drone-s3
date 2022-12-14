@@ -245,13 +245,10 @@ trigger:
 
 ---
 kind: pipeline
-type: vm
 name: manifest
 platform:
   os: linux
   arch: amd64
-pool:
-  use: ubuntu
 
 steps:
   - name: manifest
@@ -267,6 +264,7 @@ steps:
 depends_on:
   - linux-amd64
   - linux-arm64
+  - linux-arm
   - windows-1809
   - windows-ltsc2022
 trigger:
