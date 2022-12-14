@@ -123,15 +123,12 @@ trigger:
     - refs/pull/**
 ---
 kind: pipeline
-type: vm
+type: docker
 name: linux-arm
 
 platform:
   os: linux
   arch: arm
-
-pool:
-  use: ubuntu-arm
 
 steps:
   - name: build-push
