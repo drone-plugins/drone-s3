@@ -148,14 +148,8 @@ func (p *Plugin) Exec() error {
 	}
 
 	for _, match := range matches {
-
-		stat, err := os.Stat(match)
-		if err != nil {
-			continue // should never happen
-		}
-
 		// skip directories
-		if stat.IsDir() {
+		if isDir(match, matches) {
 			continue
 		}
 
@@ -316,4 +310,25 @@ func resolveKey(target, srcPath, stripPrefix string) string {
 		key = "/" + key
 	}
 	return key
+}
+
+// checks if the source path is a dir
+func isDir(source string, matches []string) bool {
+	stat, err := os.Stat(source)
+	if err != nil {
+		return true // should never happen
+	}
+	if (stat.IsDir()) {
+		count := 0
+		for _, match := range matches {
+			if strings.HasPrefix(match, source) {
+				count++;
+			}
+		}
+		if count <= 1 {
+			log.Warnf("Skipping '%s' since it is a directory. Please use correct glob expression if this is unexpected.", source)
+		}
+		return true;
+	}
+	return false
 }
