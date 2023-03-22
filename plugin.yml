@@ -1,0 +1,3 @@
+run:
+  binary:
+    source: https://github.com/drone-plugins/drone-s3/releases/download/{{ release }}/drone-s3-{{ os }}-{{ arch }}.zst
