@@ -252,3 +252,56 @@ trigger:
   ref:
     - refs/heads/master
     - refs/tags/**
+
+---
+
+kind: pipeline
+type: vm
+
+pool:
+  use: ubuntu
+
+steps:
+  - name: build
+    pull: always
+    image: golang:1.19
+    commands:
+      - GOOS=linux   GOARCH=amd64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-linux-amd64
+      - GOOS=linux   GOARCH=arm64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-linux-arm64
+      - GOOS=darwin  GOARCH=amd64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-darwin-amd64
+      - GOOS=darwin  GOARCH=arm64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-darwin-arm64
+      - GOOS=windows GOARCH=amd64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-windows-amd64.exe
+
+    environment:
+      CGO_ENABLED: 0
+      GO111MODULE: on
+
+  - name: zstd-compress
+    commands:
+      - sudo apt-get update -y
+      - sudo apt-get install -y zstd
+      - zstd release/drone-s3-linux-amd64
+      - zstd release/drone-s3-linux-arm64
+      - zstd release/drone-s3-darwin-arm64
+      - zstd release/drone-s3-darwin-amd64
+      - zstd release/drone-s3-windows-amd64.exe
+
+  - name: release
+    image: plugins/github-release
+    settings:
+      files:
+        - release/drone-s3-linux-amd64.zst
+        - release/drone-s3-linux-arm64.zst
+        - release/drone-s3-darwin-arm64.zst
+        - release/drone-s3-darwin-amd64.zst
+        - release/drone-s3-windows-amd64.exe.zst
+      api_key:
+        from_secret: github_token
+    when:
+      event:
+      - tag
+depends_on:
+  - linux-amd64
+  - linux-arm64
+  - windows-1809
+  - windows-ltsc2022
