@@ -270,7 +270,7 @@ steps:
       - GOOS=linux   GOARCH=arm64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-linux-arm64
       - GOOS=darwin  GOARCH=amd64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-darwin-amd64
       - GOOS=darwin  GOARCH=arm64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-darwin-arm64
-      - GOOS=windows GOARCH=amd64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-windows-amd64.exe
+      - GOOS=windows GOARCH=amd64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-windows-amd64
 
     environment:
       CGO_ENABLED: 0
@@ -284,7 +284,7 @@ steps:
       - zstd release/drone-s3-linux-arm64
       - zstd release/drone-s3-darwin-arm64
       - zstd release/drone-s3-darwin-amd64
-      - zstd release/drone-s3-windows-amd64.exe
+      - zstd release/drone-s3-windows-amd64
 
   - name: release
     image: plugins/github-release
@@ -294,7 +294,7 @@ steps:
         - release/drone-s3-linux-arm64.zst
         - release/drone-s3-darwin-arm64.zst
         - release/drone-s3-darwin-amd64.zst
-        - release/drone-s3-windows-amd64.exe.zst
+        - release/drone-s3-windows-amd64.zst
       api_key:
         from_secret: github_token
     when:
