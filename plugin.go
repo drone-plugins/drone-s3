@@ -194,7 +194,6 @@ func (p *Plugin) Exec() error {
 			Body:   f,
 			Bucket: &(p.Bucket),
 			Key:    &target,
-			ACL:    &(p.Access),
 		}
 
 		if contentType != "" {
@@ -215,6 +214,10 @@ func (p *Plugin) Exec() error {
 
 		if p.StorageClass != "" {
 			putObjectInput.StorageClass = &(p.StorageClass)
+		}
+
+		if p.Access != "" {
+			putObjectInput.ACL = &(p.Access)
 		}
 
 		_, err = client.PutObject(putObjectInput)

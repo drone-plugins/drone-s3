@@ -67,7 +67,6 @@ func main() {
 		cli.StringFlag{
 			Name:   "acl",
 			Usage:  "upload files with acl",
-			Value:  "private",
 			EnvVar: "PLUGIN_ACL",
 		},
 		cli.StringFlag{
