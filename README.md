@@ -26,7 +26,7 @@ go test
 Build the Docker image with the following commands:
 
 ```
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -o release/linux/amd64/drone-s3
 docker build --rm=true -t plugins/s3 .
 ```
 
