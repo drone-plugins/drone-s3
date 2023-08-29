@@ -132,6 +132,11 @@ func main() {
 			Name:  "env-file",
 			Usage: "source env file",
 		},
+		cli.StringFlag{
+			Name:   "externalID",
+			Usage:  "external ID to use when assuming role",
+			EnvVar: "PLUGIN_EXTERNAL_ID",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
