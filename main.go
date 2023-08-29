@@ -133,7 +133,7 @@ func main() {
 			Usage: "source env file",
 		},
 		cli.StringFlag{
-			Name:   "externalID",
+			Name:   "external-id",
 			Usage:  "external ID to use when assuming role",
 			EnvVar: "PLUGIN_EXTERNAL_ID",
 		},
@@ -170,6 +170,7 @@ func run(c *cli.Context) error {
 		StorageClass:          c.String("storage-class"),
 		PathStyle:             c.Bool("path-style"),
 		DryRun:                c.Bool("dry-run"),
+		ExternalID:            c.String("external-id"),
 	}
 
 	return plugin.Exec()
