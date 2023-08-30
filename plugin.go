@@ -90,6 +90,9 @@ type Plugin struct {
 	PathStyle bool
 	// Dry run without uploading/
 	DryRun bool
+
+	// set externalID for assume role
+	ExternalID string
 }
 
 // Exec runs the plugin
@@ -108,7 +111,7 @@ func (p *Plugin) Exec() error {
 	if p.Key != "" && p.Secret != "" {
 		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
 	} else if p.AssumeRole != "" {
-		conf.Credentials = assumeRole(p.AssumeRole, p.AssumeRoleSessionName)
+		conf.Credentials = assumeRole(p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
 	} else {
 		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
 	}
@@ -290,7 +293,7 @@ func matchExtension(match string, stringMap map[string]string) string {
 	return ""
 }
 
-func assumeRole(roleArn, roleSessionName string) *credentials.Credentials {
+func assumeRole(roleArn, roleSessionName, externalID string) *credentials.Credentials {
 	sess, _ := session.NewSession()
 	client := sts.New(sess)
 	duration := time.Hour * 1
@@ -299,6 +302,10 @@ func assumeRole(roleArn, roleSessionName string) *credentials.Credentials {
 		Duration:        duration,
 		RoleARN:         roleArn,
 		RoleSessionName: roleSessionName,
+	}
+
+	if externalID != "" {
+		stsProvider.ExternalID = &externalID
 	}
 
 	return credentials.NewCredentials(stsProvider)
@@ -321,17 +328,17 @@ func isDir(source string, matches []string) bool {
 	if err != nil {
 		return true // should never happen
 	}
-	if (stat.IsDir()) {
+	if stat.IsDir() {
 		count := 0
 		for _, match := range matches {
 			if strings.HasPrefix(match, source) {
-				count++;
+				count++
 			}
 		}
 		if count <= 1 {
 			log.Warnf("Skipping '%s' since it is a directory. Please use correct glob expression if this is unexpected.", source)
 		}
-		return true;
+		return true
 	}
 	return false
 }
