@@ -3,7 +3,7 @@
 FROM mcr.microsoft.com/windows/servercore:ltsc2019 as core
 
 
-FROM plugins/base:windows-1809-amd64@sha256:61095306fa56d51adc841f2b0f93f511efb5792d12f2549bb2eb1cbce02c1f05
+FROM plugins/base:windows-1809-amd64@sha256:801af14218ddafb93f6891e7bfdf79af56480762340aefc55742e4fa4c873566
 USER ContainerAdministrator
 
 ENV GODEBUG=netdns=go
