@@ -14,7 +14,6 @@ var (
 	build   = "0"
 )
 
-// Loads the environment variable from the file name in environment variable PLUGIN_ENV-FILE or ENV_FILE.
 func loadEnvVar() {
 	envVarFileName := os.Getenv("ENV_FILE")
 	if envVarFileName == "" {
