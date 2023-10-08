@@ -10,41 +10,22 @@ import (
 )
 
 var (
-	version      = "0.0.0"
-	build        = "0"
-	loadedEnvVar = false
+	version = "0.0.0"
+	build   = "0"
 )
 
-// Loads the environment variable from the file name in environment variable PLUGIN_ENV-FILE if context is nil.
-// Else, loads the environment variable cli arg "env-file".
-// Note that this function must be ran before the `Run` command to affect the cli args.
-func loadEnvVar(c *cli.Context) {
-	if loadedEnvVar {
-		return
+// Loads the environment variable from the file name in environment variable PLUGIN_ENV-FILE or ENV_FILE.
+func loadEnvVar() {
+	envVarFileName := os.Getenv("ENV_FILE")
+	if envVarFileName == "" {
+		envVarFileName = os.Getenv("PLUGIN_ENV-FILE")
 	}
 
-	var err error
-	var envFileName string
-	var overload bool
-
-	if c == nil {
-		// These environment variables are set by drone.
-		envFileName = os.Getenv("PLUGIN_ENV-FILE")
-		overload = os.Getenv("PLUGIN_OVERLOAD-ENV") != "true"
-	} else {
-		envFileName = c.String("env-file")
-		overload = c.Bool("overload-env")
-	}
-
-	if envFileName != "" {
-		if overload {
-			err = godotenv.Overload(envFileName)
-		} else {
-			err = godotenv.Load(envFileName)
-		}
-		log.Info(fmt.Sprintf("Successfully loaded (overload=%v) environment variables from %s", overload, envFileName))
+	if envVarFileName != "" {
+		err := godotenv.Overload(envVarFileName)
+		log.Info(fmt.Sprintf("Successfully loaded/overloaded environment variables from %s", envVarFileName))
 		if err != nil {
-			log.Error(fmt.Sprintf("Error reading env file %s - %v", envFileName, err))
+			log.Error(fmt.Sprintf("Error reading env file %s - %v", envVarFileName, err))
 		}
 	}
 }
@@ -165,12 +146,7 @@ func main() {
 		cli.StringFlag{
 			Name:   "env-file",
 			Usage:  "source env file",
-			EnvVar: "PLUGIN_ENV-FILE",
-		},
-		cli.BoolFlag{
-			Name:   "overload-env",
-			Usage:  "overload env variable with variable specified in 'env-file'",
-			EnvVar: "PLUGIN_OVERLOAD-ENV",
+			EnvVar: "PLUGIN_ENV-FILE,ENV_FILE",
 		},
 		cli.StringFlag{
 			Name:   "external-id",
@@ -179,7 +155,7 @@ func main() {
 		},
 	}
 
-	loadEnvVar(nil)
+	loadEnvVar()
 
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
@@ -187,8 +163,6 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	loadEnvVar(c)
-
 	plugin := Plugin{
 		Endpoint:              c.String("endpoint"),
 		Key:                   c.String("access-key"),
