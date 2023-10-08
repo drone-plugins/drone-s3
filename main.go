@@ -15,16 +15,16 @@ var (
 )
 
 func loadEnvVar() {
-	envVarFileName := os.Getenv("ENV_FILE")
-	if envVarFileName == "" {
-		envVarFileName = os.Getenv("PLUGIN_ENV-FILE")
+	fileName := os.Getenv("ENV_FILE")
+	if fileName == "" {
+		fileName = os.Getenv("PLUGIN_ENV-FILE")
 	}
 
-	if envVarFileName != "" {
-		err := godotenv.Overload(envVarFileName)
-		log.Info(fmt.Sprintf("Successfully loaded/overloaded environment variables from %s", envVarFileName))
+	if fileName != "" {
+		err := godotenv.Overload(fileName)
+		log.Info(fmt.Sprintf("Successfully loaded/overloaded environment variables from %s", fileName))
 		if err != nil {
-			log.Error(fmt.Sprintf("Error reading env file %s - %v", envVarFileName, err))
+			log.Error(fmt.Sprintf("Error reading env file %s - %v", fileName, err))
 		}
 	}
 }
