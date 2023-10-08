@@ -5,14 +5,49 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
 var (
-	version = "0.0.0"
-	build   = "0"
+	version      = "0.0.0"
+	build        = "0"
+	loadedEnvVar = false
 )
+
+// Loads the environment variable from the file name in environment variable PLUGIN_ENV-FILE if context is nil.
+// Else, loads the environment variable cli arg "env-file".
+// Note that this function must be ran before the `Run` command to affect the cli args.
+func loadEnvVar(c *cli.Context) {
+	if loadedEnvVar {
+		return
+	}
+
+	var err error
+	var envFileName string
+	var overload bool
+
+	if c == nil {
+		// These environment variables are set by drone.
+		envFileName = os.Getenv("PLUGIN_ENV-FILE")
+		overload = os.Getenv("PLUGIN_OVERLOAD-ENV") != "true"
+	} else {
+		envFileName = c.String("env-file")
+		overload = c.Bool("overload-env")
+	}
+
+	if envFileName != "" {
+		if overload {
+			err = godotenv.Overload(envFileName)
+		} else {
+			err = godotenv.Load(envFileName)
+		}
+		log.Info(fmt.Sprintf("Successfully loaded (overload=%v) environment variables from %s", overload, envFileName))
+		if err != nil {
+			log.Error(fmt.Sprintf("Error reading env file %s - %v", envFileName, err))
+		}
+	}
+}
 
 func main() {
 	app := cli.NewApp()
@@ -29,28 +64,28 @@ func main() {
 		cli.StringFlag{
 			Name:   "access-key",
 			Usage:  "aws access key",
-			EnvVar: "PLUGIN_ACCESS_KEY,AWS_ACCESS_KEY_ID",
+			EnvVar: "PLUGIN_ACCESS-KEY,AWS_ACCESS_KEY_ID",
 		},
 		cli.StringFlag{
 			Name:   "secret-key",
 			Usage:  "aws secret key",
-			EnvVar: "PLUGIN_SECRET_KEY,AWS_SECRET_ACCESS_KEY",
+			EnvVar: "PLUGIN_SECRET-KEY,AWS_SECRET_ACCESS_KEY",
 		},
 		cli.StringFlag{
 			Name:   "assume-role",
 			Usage:  "aws iam role to assume",
-			EnvVar: "PLUGIN_ASSUME_ROLE,ASSUME_ROLE",
+			EnvVar: "PLUGIN_ASSUME-ROLE,ASSUME_ROLE",
 		},
 		cli.StringFlag{
 			Name:   "assume-role-session-name",
 			Usage:  "aws iam role session name to assume",
 			Value:  "drone-s3",
-			EnvVar: "PLUGIN_ASSUME_ROLE_SESSION_NAME,ASSUME_ROLE_SESSION_NAME",
+			EnvVar: "PLUGIN_ASSUME-ROLE-SESSION-NAME,ASSUME_ROLE_SESSION_NAME",
 		},
 		cli.StringFlag{
 			Name:   "user-role-arn",
 			Usage:  "AWS user role",
-			EnvVar: "PLUGIN_USER_ROLE_ARN,AWS_USER_ROLE_ARN",
+			EnvVar: "PLUGIN_USER-ROLE-ARN,AWS_USER_ROLE_ARN",
 		},
 		cli.StringFlag{
 			Name:   "bucket",
@@ -82,7 +117,7 @@ func main() {
 		cli.StringFlag{
 			Name:   "strip-prefix",
 			Usage:  "strip the prefix from the target",
-			EnvVar: "PLUGIN_STRIP_PREFIX",
+			EnvVar: "PLUGIN_STRIP-PREFIX",
 		},
 		cli.StringSliceFlag{
 			Name:   "exclude",
@@ -97,56 +132,62 @@ func main() {
 		cli.BoolFlag{
 			Name:   "dry-run",
 			Usage:  "dry run for debug purposes",
-			EnvVar: "PLUGIN_DRY_RUN",
+			EnvVar: "PLUGIN_DRY-RUN",
 		},
 		cli.BoolFlag{
 			Name:   "path-style",
 			Usage:  "use path style for bucket paths",
-			EnvVar: "PLUGIN_PATH_STYLE",
+			EnvVar: "PLUGIN_PATH-STYLE",
 		},
 		cli.GenericFlag{
 			Name:   "content-type",
 			Usage:  "set content type header for uploaded objects",
-			EnvVar: "PLUGIN_CONTENT_TYPE",
+			EnvVar: "PLUGIN_CONTENT-TYPE",
 			Value:  &StringMapFlag{},
 		},
 		cli.GenericFlag{
 			Name:   "content-encoding",
 			Usage:  "set content encoding header for uploaded objects",
-			EnvVar: "PLUGIN_CONTENT_ENCODING",
+			EnvVar: "PLUGIN_CONTENT-ENCODING",
 			Value:  &StringMapFlag{},
 		},
 		cli.GenericFlag{
 			Name:   "cache-control",
 			Usage:  "set cache-control header for uploaded objects",
-			EnvVar: "PLUGIN_CACHE_CONTROL",
+			EnvVar: "PLUGIN_CACHE-CONTROL",
 			Value:  &StringMapFlag{},
 		},
 		cli.StringFlag{
 			Name:   "storage-class",
 			Usage:  "set storage class to choose the best backend",
-			EnvVar: "PLUGIN_STORAGE_CLASS",
+			EnvVar: "PLUGIN_STORAGE-CLASS",
 		},
 		cli.StringFlag{
-			Name:  "env-file",
-			Usage: "source env file",
+			Name:   "env-file",
+			Usage:  "source env file",
+			EnvVar: "PLUGIN_ENV-FILE",
+		},
+		cli.BoolFlag{
+			Name:   "overload-env",
+			Usage:  "overload env variable with variable specified in 'env-file'",
+			EnvVar: "PLUGIN_OVERLOAD-ENV",
 		},
 		cli.StringFlag{
 			Name:   "external-id",
 			Usage:  "external ID to use when assuming role",
-			EnvVar: "PLUGIN_EXTERNAL_ID",
+			EnvVar: "PLUGIN_EXTERNAL-ID",
 		},
 	}
 
+	loadEnvVar(nil)
+
 	if err := app.Run(os.Args); err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 }
 
 func run(c *cli.Context) error {
-	if c.String("env-file") != "" {
-		_ = godotenv.Load(c.String("env-file"))
-	}
+	loadEnvVar(c)
 
 	plugin := Plugin{
 		Endpoint:              c.String("endpoint"),
