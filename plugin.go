@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"mime"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/mattn/go-zglob"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 // Plugin defines the S3 plugin parameters.
@@ -43,6 +45,9 @@ type Plugin struct {
 	// ap-northeast-1
 	// sa-east-1
 	Region string
+
+	// if true, plugin is set to download mode, which means `target` from the bucket will be downloaded
+	Download bool
 
 	// Indicates the files ACL, which should be one
 	// of the following:
@@ -133,6 +138,77 @@ func (p *Plugin) Exec() error {
 		client = s3.New(sess, &confRoleArn)
 	} else {
 		client = s3.New(sess)
+	}
+
+	if p.Download {
+		targetDir := strings.TrimPrefix(filepath.ToSlash(p.Target), "/")
+		log.WithFields(log.Fields{
+			"bucket": p.Bucket,
+			"dir":    targetDir,
+		}).Info("Listing S3 directory")
+
+		list, err := client.ListObjectsV2(&s3.ListObjectsV2Input{
+			Bucket: &p.Bucket,
+			Prefix: &targetDir,
+		})
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error":  err,
+				"bucket": p.Bucket,
+				"dir":    targetDir,
+			}).Error("Cannot list S3 directory")
+			return err
+		}
+
+		g := errgroup.Group{}
+
+		for _, item := range list.Contents {
+			log.WithFields(log.Fields{
+				"bucket": p.Bucket,
+				"key":    *item.Key,
+			}).Info("Getting S3 object")
+
+			item := item
+			g.Go(func() error {
+				obj, err := client.GetObject(&s3.GetObjectInput{
+					Bucket: &p.Bucket,
+					Key:    item.Key,
+				})
+				if err != nil {
+					log.WithFields(log.Fields{
+						"error":  err,
+						"bucket": p.Bucket,
+						"key":    *item.Key,
+					}).Error("Cannot get S3 object")
+					return err
+				}
+
+				source := resolveSource(targetDir, *item.Key, p.StripPrefix)
+
+				f, err := os.Create(source)
+				if err != nil {
+					log.WithFields(log.Fields{
+						"error": err,
+						"file":  source,
+					}).Error("Problem opening file for writing")
+					return err
+				}
+				defer f.Close()
+
+				_, err = io.Copy(f, obj.Body)
+				if err != nil {
+					log.WithFields(log.Fields{
+						"error": err,
+						"file":  source,
+					}).Error("Failed to write file")
+					return err
+				}
+
+				return nil
+			})
+		}
+
+		return g.Wait()
 	}
 
 	// find the bucket
@@ -320,6 +396,11 @@ func resolveKey(target, srcPath, stripPrefix string) string {
 		key = "/" + key
 	}
 	return key
+}
+
+func resolveSource(targetDir, target, stripPrefix string) string {
+	path := strings.TrimPrefix(strings.TrimPrefix(target, targetDir), "/")
+	return stripPrefix + path
 }
 
 // checks if the source path is a dir
