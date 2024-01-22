@@ -141,74 +141,7 @@ func (p *Plugin) Exec() error {
 	}
 
 	if p.Download {
-		targetDir := strings.TrimPrefix(filepath.ToSlash(p.Target), "/")
-		log.WithFields(log.Fields{
-			"bucket": p.Bucket,
-			"dir":    targetDir,
-		}).Info("Listing S3 directory")
-
-		list, err := client.ListObjectsV2(&s3.ListObjectsV2Input{
-			Bucket: &p.Bucket,
-			Prefix: &targetDir,
-		})
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error":  err,
-				"bucket": p.Bucket,
-				"dir":    targetDir,
-			}).Error("Cannot list S3 directory")
-			return err
-		}
-
-		g := errgroup.Group{}
-
-		for _, item := range list.Contents {
-			log.WithFields(log.Fields{
-				"bucket": p.Bucket,
-				"key":    *item.Key,
-			}).Info("Getting S3 object")
-
-			item := item
-			g.Go(func() error {
-				obj, err := client.GetObject(&s3.GetObjectInput{
-					Bucket: &p.Bucket,
-					Key:    item.Key,
-				})
-				if err != nil {
-					log.WithFields(log.Fields{
-						"error":  err,
-						"bucket": p.Bucket,
-						"key":    *item.Key,
-					}).Error("Cannot get S3 object")
-					return err
-				}
-
-				source := resolveSource(targetDir, *item.Key, p.StripPrefix)
-
-				f, err := os.Create(source)
-				if err != nil {
-					log.WithFields(log.Fields{
-						"error": err,
-						"file":  source,
-					}).Error("Problem opening file for writing")
-					return err
-				}
-				defer f.Close()
-
-				_, err = io.Copy(f, obj.Body)
-				if err != nil {
-					log.WithFields(log.Fields{
-						"error": err,
-						"file":  source,
-					}).Error("Failed to write file")
-					return err
-				}
-
-				return nil
-			})
-		}
-
-		return g.Wait()
+		downloadFromS3(p, client)
 	}
 
 	// find the bucket
@@ -422,4 +355,80 @@ func isDir(source string, matches []string) bool {
 		return true
 	}
 	return false
+}
+
+func resolveTargetDir(s string) string {
+	res := strings.TrimPrefix(filepath.ToSlash(s), "/")
+	return res
+}
+
+func downloadFromS3(p *Plugin, client *s3.S3) error {
+	targetDir := resolveTargetDir(p.Target)
+	log.WithFields(log.Fields{
+		"bucket": p.Bucket,
+		"dir":    targetDir,
+	}).Info("Listing S3 directory")
+
+	list, err := client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: &p.Bucket,
+		Prefix: &targetDir,
+	})
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":  err,
+			"bucket": p.Bucket,
+			"dir":    targetDir,
+		}).Error("Cannot list S3 directory")
+		return err
+	}
+
+	g := errgroup.Group{}
+
+	for _, item := range list.Contents {
+		log.WithFields(log.Fields{
+			"bucket": p.Bucket,
+			"key":    *item.Key,
+		}).Info("Getting S3 object")
+
+		item := item
+		g.Go(func() error {
+			obj, err := client.GetObject(&s3.GetObjectInput{
+				Bucket: &p.Bucket,
+				Key:    item.Key,
+			})
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error":  err,
+					"bucket": p.Bucket,
+					"key":    *item.Key,
+				}).Error("Cannot get S3 object")
+				return err
+			}
+
+			source := resolveSource(targetDir, *item.Key, p.StripPrefix)
+
+			f, err := os.Create(source)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+					"file":  source,
+				}).Error("Problem opening file for writing")
+				return err
+			}
+			defer f.Close()
+
+			_, err = io.Copy(f, obj.Body)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+					"file":  source,
+				}).Error("Failed to write file")
+				return err
+			}
+
+			return nil
+		})
+	}
+
+	return g.Wait()
 }
