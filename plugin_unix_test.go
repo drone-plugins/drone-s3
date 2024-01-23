@@ -79,3 +79,42 @@ func TestResolveDir(t *testing.T) {
 		}
 	}
 }
+
+func TestNormalizePath(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "/path/to/file.txt",
+			expected: "path/to/file.txt",
+		},
+		{
+			input:    "C:\\Users\\username\\Documents\\file.doc",
+			expected: "C:\\Users\\username\\Documents\\file.doc",
+		},
+		{
+			input:    "relative/path/to/file",
+			expected: "relative/path/to/file",
+		},
+		{
+			input:    "file.txt",
+			expected: "file.txt",
+		},
+		{
+			input:    "/root/directory/",
+			expected: "root/directory/",
+		},
+		{
+			input:    "no_slash",
+			expected: "no_slash",
+		},
+	}
+
+	for _, tc := range tests {
+		result := normalizePath(tc.input)
+		if result != tc.expected {
+			t.Errorf("Expected: %s, Got: %s", tc.expected, result)
+		}
+	}
+}
