@@ -45,7 +45,7 @@ func TestResolveUnixKey(t *testing.T) {
 	}
 }
 
-func TestResolveTargetDir(t *testing.T) {
+func TestResolveDir(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
@@ -73,7 +73,7 @@ func TestResolveTargetDir(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		result := resolveTargetDir(tc.input)
+		result := resolveDir(tc.input)
 		if result != tc.expected {
 			t.Errorf("Expected: %s, Got: %s", tc.expected, result)
 		}

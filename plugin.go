@@ -103,7 +103,11 @@ type Plugin struct {
 // Exec runs the plugin
 func (p *Plugin) Exec() error {
 	// normalize the target URL
-	p.Target = resolveTargetDir(p.Target)
+	if p.Download {
+		p.Source = resolveDir(p.Source)
+	} else {
+		p.Target = resolveDir(p.Target)
+	}
 
 	// create the client
 	conf := &aws.Config{
@@ -141,21 +145,23 @@ func (p *Plugin) Exec() error {
 	}
 
 	if p.Download {
-		targetDir := strings.TrimPrefix(filepath.ToSlash(p.Target), "/")
+		// sourceDir := strings.TrimPrefix(filepath.ToSlash(p.Source), "/")
+		sourceDir := normalizePath(p.Source)
+
 		log.WithFields(log.Fields{
 			"bucket": p.Bucket,
-			"dir":    targetDir,
+			"dir":    sourceDir,
 		}).Info("Listing S3 directory")
 
 		list, err := client.ListObjectsV2(&s3.ListObjectsV2Input{
 			Bucket: &p.Bucket,
-			Prefix: &targetDir,
+			Prefix: &sourceDir,
 		})
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error":  err,
 				"bucket": p.Bucket,
-				"dir":    targetDir,
+				"dir":    sourceDir,
 			}).Error("Cannot list S3 directory")
 			return err
 		}
@@ -183,13 +189,13 @@ func (p *Plugin) Exec() error {
 					return err
 				}
 
-				source := resolveSource(targetDir, *item.Key, p.StripPrefix)
+				target := resolveSource(sourceDir, *item.Key, p.StripPrefix)
 
-				f, err := os.Create(source)
+				f, err := os.Create(target)
 				if err != nil {
 					log.WithFields(log.Fields{
 						"error": err,
-						"file":  source,
+						"file":  target,
 					}).Error("Problem opening file for writing")
 					return err
 				}
@@ -199,7 +205,7 @@ func (p *Plugin) Exec() error {
 				if err != nil {
 					log.WithFields(log.Fields{
 						"error": err,
-						"file":  source,
+						"file":  target,
 					}).Error("Failed to write file")
 					return err
 				}
@@ -424,7 +430,12 @@ func isDir(source string, matches []string) bool {
 	return false
 }
 
-func resolveTargetDir(s string) string {
+func resolveDir(s string) string {
 	res := strings.TrimPrefix(filepath.ToSlash(s), "/")
 	return res
+}
+
+// normalizePath converts the path to a forward slash format and trims the prefix.
+func normalizePath(source string) string {
+	return strings.TrimPrefix(filepath.ToSlash(source), "/")
 }
