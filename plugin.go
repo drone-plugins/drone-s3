@@ -188,6 +188,9 @@ func (p *Plugin) Exec() error {
 					return err
 				}
 
+				// resolveSource takes a target directory, a target path, and a prefix to strip,
+				// and returns a resolved source path by removing the targetDir from the target
+				// and appending the stripPrefix.
 				target := resolveSource(sourceDir, *item.Key, p.StripPrefix)
 
 				f, err := os.Create(target)
@@ -404,7 +407,10 @@ func resolveKey(target, srcPath, stripPrefix string) string {
 }
 
 func resolveSource(targetDir, target, stripPrefix string) string {
+	// Remove the leading targetDir from the target path
 	path := strings.TrimPrefix(strings.TrimPrefix(target, targetDir), "/")
+
+	// Add the specified stripPrefix to the resulting path
 	return stripPrefix + path
 }
 
