@@ -45,41 +45,6 @@ func TestResolveUnixKey(t *testing.T) {
 	}
 }
 
-func TestResolveDir(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{
-			input:    "example-string",
-			expected: "example-string",
-		},
-		{
-			input:    "/path/to/file",
-			expected: "path/to/file",
-		},
-		{
-			input:    "12345",
-			expected: "12345",
-		},
-		{
-			input:    "/root/directory",
-			expected: "root/directory",
-		},
-		{
-			input:    "no_slash",
-			expected: "no_slash",
-		},
-	}
-
-	for _, tc := range tests {
-		result := resolveDir(tc.input)
-		if result != tc.expected {
-			t.Errorf("Expected: %s, Got: %s", tc.expected, result)
-		}
-	}
-}
-
 func TestNormalizePath(t *testing.T) {
 	tests := []struct {
 		input    string

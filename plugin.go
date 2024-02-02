@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/mattn/go-zglob"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 )
 
 // Plugin defines the S3 plugin parameters.
@@ -104,9 +103,9 @@ type Plugin struct {
 func (p *Plugin) Exec() error {
 	// normalize the target URL
 	if p.Download {
-		p.Source = resolveDir(p.Source)
+		p.Source = normalizePath(p.Source)
 	} else {
-		p.Target = resolveDir(p.Target)
+		p.Target = normalizePath(p.Target)
 	}
 
 	// create the client
@@ -165,58 +164,52 @@ func (p *Plugin) Exec() error {
 			return err
 		}
 
-		g := errgroup.Group{}
-
 		for _, item := range list.Contents {
 			log.WithFields(log.Fields{
 				"bucket": p.Bucket,
 				"key":    *item.Key,
 			}).Info("Getting S3 object")
 
-			item := item
-			g.Go(func() error {
-				obj, err := client.GetObject(&s3.GetObjectInput{
-					Bucket: &p.Bucket,
-					Key:    item.Key,
-				})
-				if err != nil {
-					log.WithFields(log.Fields{
-						"error":  err,
-						"bucket": p.Bucket,
-						"key":    *item.Key,
-					}).Error("Cannot get S3 object")
-					return err
-				}
-
-				// resolveSource takes a target directory, a target path, and a prefix to strip,
-				// and returns a resolved source path by removing the targetDir from the target
-				// and appending the stripPrefix.
-				target := resolveSource(sourceDir, *item.Key, p.StripPrefix)
-
-				f, err := os.Create(target)
-				if err != nil {
-					log.WithFields(log.Fields{
-						"error": err,
-						"file":  target,
-					}).Error("Failed to create file")
-					return err
-				}
-				defer f.Close()
-
-				_, err = io.Copy(f, obj.Body)
-				if err != nil {
-					log.WithFields(log.Fields{
-						"error": err,
-						"file":  target,
-					}).Error("Failed to write file")
-					return err
-				}
-
-				return nil
+			obj, err := client.GetObject(&s3.GetObjectInput{
+				Bucket: &p.Bucket,
+				Key:    item.Key,
 			})
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error":  err,
+					"bucket": p.Bucket,
+					"key":    *item.Key,
+				}).Error("Cannot get S3 object")
+				return err
+			}
+			defer obj.Body.Close()
+
+			// resolveSource takes a target directory, a target path, and a prefix to strip,
+			// and returns a resolved source path by removing the targetDir from the target
+			// and appending the stripPrefix.
+			target := resolveSource(sourceDir, *item.Key, p.StripPrefix)
+
+			f, err := os.Create(target)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+					"file":  target,
+				}).Error("Failed to create file")
+				return err
+			}
+			defer f.Close()
+
+			_, err = io.Copy(f, obj.Body)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+					"file":  target,
+				}).Error("Failed to write file")
+				return err
+			}
 		}
 
-		return g.Wait()
+		return nil
 	}
 
 	// find the bucket
@@ -433,11 +426,6 @@ func isDir(source string, matches []string) bool {
 		return true
 	}
 	return false
-}
-
-func resolveDir(s string) string {
-	res := strings.TrimPrefix(filepath.ToSlash(s), "/")
-	return res
 }
 
 // normalizePath converts the path to a forward slash format and trims the prefix.
