@@ -46,7 +46,7 @@ type Plugin struct {
 	// sa-east-1
 	Region string
 
-	// if true, plugin is set to download mode, which means `target` from the bucket will be downloaded
+	// if true, plugin is set to download mode, which means `source` from the bucket will be downloaded
 	Download bool
 
 	// Indicates the files ACL, which should be one
@@ -145,7 +145,6 @@ func (p *Plugin) Exec() error {
 	}
 
 	if p.Download {
-		// sourceDir := strings.TrimPrefix(filepath.ToSlash(p.Source), "/")
 		sourceDir := normalizePath(p.Source)
 
 		log.WithFields(log.Fields{
@@ -196,7 +195,7 @@ func (p *Plugin) Exec() error {
 					log.WithFields(log.Fields{
 						"error": err,
 						"file":  target,
-					}).Error("Problem opening file for writing")
+					}).Error("Failed to create file")
 					return err
 				}
 				defer f.Close()
