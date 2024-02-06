@@ -110,44 +110,11 @@ func (p *Plugin) Exec() error {
 	}
 
 	// create the client
-	conf := &aws.Config{
-		Region:           aws.String(p.Region),
-		Endpoint:         &p.Endpoint,
-		DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
-		S3ForcePathStyle: aws.Bool(p.PathStyle),
-	}
-
-	if p.Key != "" && p.Secret != "" {
-		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
-	} else if p.AssumeRole != "" {
-		conf.Credentials = assumeRole(p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
-	} else {
-		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
-	}
-
-	var client *s3.S3
-	sess, err := session.NewSession(conf)
-	if err != nil {
-		log.WithError(err).Errorln("could not instantiate session")
-		return err
-	}
-
-	// If user role ARN is set then assume role here
-	if len(p.UserRoleArn) > 0 {
-		confRoleArn := aws.Config{
-			Region:      aws.String(p.Region),
-			Credentials: stscreds.NewCredentials(sess, p.UserRoleArn),
-		}
-
-		client = s3.New(sess, &confRoleArn)
-	} else {
-		client = s3.New(sess)
-	}
+	client := p.createS3Client()
 
 	// If in download mode, call the downloadS3Objects method
 	if p.Download {
 		sourceDir := normalizePath(p.Source)
-		client := p.createS3Client()
 
 		return p.downloadS3Objects(client, sourceDir)
 	}

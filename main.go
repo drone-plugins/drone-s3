@@ -81,7 +81,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "strip-prefix",
-			Usage:  "strip the prefix from the target",
+			Usage:  "used to add or remove a prefix from the source/target path",
 			EnvVar: "PLUGIN_STRIP_PREFIX",
 		},
 		cli.StringSliceFlag{
@@ -96,7 +96,7 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:   "download",
-			Usage:  "switch to download mode, which will fetch `target`'s files from s3 bucket and place them according to `strip-prefix`",
+			Usage:  "switch to download mode, which will fetch `source`'s files from s3 bucket",
 			EnvVar: "PLUGIN_DOWNLOAD",
 		},
 		cli.BoolFlag{
