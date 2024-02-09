@@ -42,6 +42,7 @@ docker: Error response from daemon: Container command
 
 Execute from the working directory:
 
+* For upload
 ```
 docker run --rm \
   -e PLUGIN_SOURCE=<source> \
@@ -49,6 +50,20 @@ docker run --rm \
   -e PLUGIN_BUCKET=<bucket> \
   -e AWS_ACCESS_KEY_ID=<token> \
   -e AWS_SECRET_ACCESS_KEY=<secret> \
+  -v $(pwd):$(pwd) \
+  -w $(pwd) \
+  plugins/s3 --dry-run
+```
+
+* For download
+```
+docker run --rm \
+  -e PLUGIN_SOURCE=<source directory to be downloaded from bucket> \
+  -e PLUGIN_BUCKET=<bucket> \
+  -e AWS_ACCESS_KEY_ID=<token> \
+  -e AWS_SECRET_ACCESS_KEY=<secret> \
+  -e PLUGIN_REGION=<region where the bucket is deployed> \
+  -e PLUGIN_DOWNLOAD="true" \
   -v $(pwd):$(pwd) \
   -w $(pwd) \
   plugins/s3 --dry-run

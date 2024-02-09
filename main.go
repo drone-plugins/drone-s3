@@ -81,7 +81,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "strip-prefix",
-			Usage:  "strip the prefix from the target",
+			Usage:  "used to add or remove a prefix from the source/target path",
 			EnvVar: "PLUGIN_STRIP_PREFIX",
 		},
 		cli.StringSliceFlag{
@@ -93,6 +93,11 @@ func main() {
 			Name:   "encryption",
 			Usage:  "server-side encryption algorithm, defaults to none",
 			EnvVar: "PLUGIN_ENCRYPTION",
+		},
+		cli.BoolFlag{
+			Name:   "download",
+			Usage:  "switch to download mode, which will fetch `source`'s files from s3 bucket",
+			EnvVar: "PLUGIN_DOWNLOAD",
 		},
 		cli.BoolFlag{
 			Name:   "dry-run",
@@ -164,6 +169,7 @@ func run(c *cli.Context) error {
 		Exclude:               c.StringSlice("exclude"),
 		Encryption:            c.String("encryption"),
 		ContentType:           c.Generic("content-type").(*StringMapFlag).Get(),
+		Download:              c.Bool("download"),
 		ContentEncoding:       c.Generic("content-encoding").(*StringMapFlag).Get(),
 		CacheControl:          c.Generic("cache-control").(*StringMapFlag).Get(),
 		StorageClass:          c.String("storage-class"),

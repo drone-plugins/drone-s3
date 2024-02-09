@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"mime"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/mattn/go-zglob"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -43,6 +45,9 @@ type Plugin struct {
 	// ap-northeast-1
 	// sa-east-1
 	Region string
+
+	// if true, plugin is set to download mode, which means `source` from the bucket will be downloaded
+	Download bool
 
 	// Indicates the files ACL, which should be one
 	// of the following:
@@ -97,42 +102,21 @@ type Plugin struct {
 
 // Exec runs the plugin
 func (p *Plugin) Exec() error {
-	// normalize the target URL
-	p.Target = strings.TrimPrefix(p.Target, "/")
+	if p.Download {
+		p.Source = normalizePath(p.Source)
+		p.Target = normalizePath(p.Target)
+	} else {
+		p.Target = strings.TrimPrefix(p.Target, "/")
+	}
 
 	// create the client
-	conf := &aws.Config{
-		Region:           aws.String(p.Region),
-		Endpoint:         &p.Endpoint,
-		DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
-		S3ForcePathStyle: aws.Bool(p.PathStyle),
-	}
+	client := p.createS3Client()
 
-	if p.Key != "" && p.Secret != "" {
-		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
-	} else if p.AssumeRole != "" {
-		conf.Credentials = assumeRole(p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
-	} else {
-		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
-	}
+	// If in download mode, call the downloadS3Objects method
+	if p.Download {
+		sourceDir := normalizePath(p.Source)
 
-	var client *s3.S3
-	sess, err := session.NewSession(conf)
-	if err != nil {
-		log.WithError(err).Errorln("could not instantiate session")
-		return err
-	}
-
-	// If user role ARN is set then assume role here
-	if len(p.UserRoleArn) > 0 {
-		confRoleArn := aws.Config{
-			Region:      aws.String(p.Region),
-			Credentials: stscreds.NewCredentials(sess, p.UserRoleArn),
-		}
-
-		client = s3.New(sess, &confRoleArn)
-	} else {
-		client = s3.New(sess)
+		return p.downloadS3Objects(client, sourceDir)
 	}
 
 	// find the bucket
@@ -322,6 +306,14 @@ func resolveKey(target, srcPath, stripPrefix string) string {
 	return key
 }
 
+func resolveSource(sourceDir, source, stripPrefix string) string {
+	// Remove the leading sourceDir from the source path
+	path := strings.TrimPrefix(strings.TrimPrefix(source, sourceDir), "/")
+
+	// Add the specified stripPrefix to the resulting path
+	return stripPrefix + path
+}
+
 // checks if the source path is a dir
 func isDir(source string, matches []string) bool {
 	stat, err := os.Stat(source)
@@ -341,4 +333,129 @@ func isDir(source string, matches []string) bool {
 		return true
 	}
 	return false
+}
+
+// normalizePath converts the path to a forward slash format and trims the prefix.
+func normalizePath(path string) string {
+	return strings.TrimPrefix(filepath.ToSlash(path), "/")
+}
+
+// downloadS3Object downloads a single object from S3
+func (p *Plugin) downloadS3Object(client *s3.S3, sourceDir, key, target string) error {
+	log.WithFields(log.Fields{
+		"bucket": p.Bucket,
+		"key":    key,
+	}).Info("Getting S3 object")
+
+	obj, err := client.GetObject(&s3.GetObjectInput{
+		Bucket: &p.Bucket,
+		Key:    &key,
+	})
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":  err,
+			"bucket": p.Bucket,
+			"key":    key,
+		}).Error("Cannot get S3 object")
+		return err
+	}
+	defer obj.Body.Close()
+
+	// Create the destination file path
+	destination := filepath.Join(p.Target, target)
+	log.Println("Destination: ", destination)
+
+	// Extract the directory from the destination path
+	dir := filepath.Dir(destination)
+
+	// Create the directory and any necessary parent directories
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return errors.Wrap(err, "error creating directories")
+	}
+
+	f, err := os.Create(destination)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+			"file":  destination,
+		}).Error("Failed to create file")
+		return err
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, obj.Body)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+			"file":  destination,
+		}).Error("Failed to write file")
+		return err
+	}
+
+	return nil
+}
+
+// downloadS3Objects downloads all objects in the specified S3 bucket path
+func (p *Plugin) downloadS3Objects(client *s3.S3, sourceDir string) error {
+	log.WithFields(log.Fields{
+		"bucket": p.Bucket,
+		"dir":    sourceDir,
+	}).Info("Listing S3 directory")
+
+	list, err := client.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket: &p.Bucket,
+		Prefix: &sourceDir,
+	})
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":  err,
+			"bucket": p.Bucket,
+			"dir":    sourceDir,
+		}).Error("Cannot list S3 directory")
+		return err
+	}
+
+	for _, item := range list.Contents {
+		// resolveSource takes a source directory, a source path, and a prefix to strip,
+		// and returns a resolved target path by removing the sourceDir from the source
+		// and appending the stripPrefix.
+		target := resolveSource(sourceDir, *item.Key, p.StripPrefix)
+
+		if err := p.downloadS3Object(client, sourceDir, *item.Key, target); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// createS3Client creates and returns an S3 client based on the plugin configuration
+func (p *Plugin) createS3Client() *s3.S3 {
+	conf := &aws.Config{
+		Region:           aws.String(p.Region),
+		Endpoint:         &p.Endpoint,
+		DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
+		S3ForcePathStyle: aws.Bool(p.PathStyle),
+	}
+
+	if p.Key != "" && p.Secret != "" {
+		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
+	} else if p.AssumeRole != "" {
+		conf.Credentials = assumeRole(p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
+	} else {
+		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
+	}
+
+	sess, _ := session.NewSession(conf)
+	client := s3.New(sess)
+
+	if len(p.UserRoleArn) > 0 {
+		confRoleArn := aws.Config{
+			Region:      aws.String(p.Region),
+			Credentials: stscreds.NewCredentials(sess, p.UserRoleArn),
+		}
+		client = s3.New(sess, &confRoleArn)
+	}
+
+	return client
 }
