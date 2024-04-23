@@ -141,6 +141,11 @@ func main() {
 			Usage:  "external ID to use when assuming role",
 			EnvVar: "PLUGIN_EXTERNAL_ID",
 		},
+		cli.StringFlag{
+			Name:   "oidc-token-id",
+			Usage:  "OIDC token for assuming role via web identity",
+			EnvVar: "PLUGIN_OIDC_TOKEN_ID",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -176,6 +181,7 @@ func run(c *cli.Context) error {
 		PathStyle:             c.Bool("path-style"),
 		DryRun:                c.Bool("dry-run"),
 		ExternalID:            c.String("external-id"),
+		IdToken: 			   c.String("oidc-token-id"),
 	}
 
 	return plugin.Exec()
