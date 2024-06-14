@@ -145,6 +145,10 @@ func (p *Plugin) Exec() error {
 
 		target := resolveKey(p.Target, match, p.StripPrefix)
 
+        if string(os.PathSeparator) == "\\" {
+            target = strings.Replace(target, "\\", "/", -1)
+        }
+
 		contentType := matchExtension(match, p.ContentType)
 		contentEncoding := matchExtension(match, p.ContentEncoding)
 		cacheControl := matchExtension(match, p.CacheControl)
