@@ -99,7 +99,7 @@ type Plugin struct {
 	// set externalID for assume role
 	ExternalID string
 
-	// set OIDC ID Token to retrieve temporary credentials 
+	// set OIDC ID Token to retrieve temporary credentials
 	IdToken string
 }
 
@@ -441,14 +441,14 @@ func (p *Plugin) createS3Client() *s3.S3 {
         S3ForcePathStyle: aws.Bool(p.PathStyle),
     }
 
-    sess, err := session.NewSession(conf)
-    if err != nil {
-        log.Fatalf("failed to create AWS session: %v", err)
-    }
-
     if p.Key != "" && p.Secret != "" {
         conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
     } else if p.IdToken != "" && p.AssumeRole != "" {
+        sess, err := session.NewSession(conf)
+        if err != nil {
+            log.Fatalf("failed to create interim AWS session to assume role with web identity: %v", err)
+        }
+
         creds, err := assumeRoleWithWebIdentity(sess, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken)
         if err != nil {
             log.Fatalf("failed to assume role with web identity: %v", err)
@@ -458,6 +458,11 @@ func (p *Plugin) createS3Client() *s3.S3 {
         conf.Credentials = assumeRole(p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
     } else {
         log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
+    }
+
+    sess, err := session.NewSession(conf)
+    if err != nil {
+        log.Fatalf("failed to create AWS session: %v", err)
     }
 
     client := s3.New(sess, conf)
