@@ -1,6 +1,6 @@
 module github.com/drone-plugins/drone-s3
 
-go 1.22
+go 1.22.4
 
 require (
 	github.com/aws/aws-sdk-go v1.44.156
