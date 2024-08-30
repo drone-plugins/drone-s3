@@ -1,13 +1,13 @@
 module github.com/drone-plugins/drone-s3
 
-go 1.22.4
+go 1.23.4
 
 require (
 	github.com/aws/aws-sdk-go v1.44.156
 	github.com/joho/godotenv v1.4.0
 	github.com/mattn/go-zglob v0.0.4
 	github.com/sirupsen/logrus v1.9.0
-	github.com/urfave/cli v1.22.10
+	github.com/urfave/cli v1.23.10
 )
 
 require (
