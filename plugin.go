@@ -441,15 +441,10 @@ func (p *Plugin) createS3Client() *s3.S3 {
         S3ForcePathStyle: aws.Bool(p.PathStyle),
     }
 
-    sess, err := session.NewSession(conf)
-    if err != nil {
-        log.Fatalf("failed to create AWS session: %v", err)
-    }
-
     if p.Key != "" && p.Secret != "" {
         conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
     } else if p.IdToken != "" && p.AssumeRole != "" {
-        creds, err := assumeRoleWithWebIdentity(sess, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken)
+        creds, err := assumeRoleWithWebIdentity(nil, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken)
         if err != nil {
             log.Fatalf("failed to assume role with web identity: %v", err)
         }
@@ -460,7 +455,12 @@ func (p *Plugin) createS3Client() *s3.S3 {
         log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
     }
 
-    client := s3.New(sess, conf)
+    sess, err := session.NewSession(conf)
+    if err != nil {
+        log.Fatalf("failed to create AWS session: %v", err)
+    }
+
+    client := s3.New(sess)
 
     if len(p.UserRoleArn) > 0 {
         confRoleArn := aws.Config{
