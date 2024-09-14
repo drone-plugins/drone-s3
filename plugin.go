@@ -440,10 +440,14 @@ func (p *Plugin) createS3Client() *s3.S3 {
 		S3ForcePathStyle: aws.Bool(p.PathStyle),
 	}
 
+	var creds *credentials.Credentials
+	var err error
+
 	// Set credentials before creating the session
 	if p.Key != "" && p.Secret != "" {
 		// Use static credentials
-		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
+		creds = credentials.NewStaticCredentials(p.Key, p.Secret, "")
+		conf.Credentials = creds
 	} else if p.IdToken != "" && p.AssumeRole != "" {
 		// Assume role with web identity
 		tempSess, err := session.NewSession(conf)
@@ -451,7 +455,7 @@ func (p *Plugin) createS3Client() *s3.S3 {
 			log.Fatalf("failed to create temporary AWS session: %v", err)
 		}
 
-		creds, err := assumeRoleWithWebIdentity(tempSess, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken)
+		creds, err = assumeRoleWithWebIdentity(tempSess, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken)
 		if err != nil {
 			log.Fatalf("failed to assume role with web identity: %v", err)
 		}
@@ -465,7 +469,7 @@ func (p *Plugin) createS3Client() *s3.S3 {
 			log.Fatalf("failed to create temporary AWS session: %v", err)
 		}
 
-		creds := assumeRole(tempSess, p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
+		creds = assumeRole(tempSess, p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
 
 		// Update the credentials in the config
 		conf.Credentials = creds
@@ -482,18 +486,21 @@ func (p *Plugin) createS3Client() *s3.S3 {
 	// Create the S3 client using the session
 	client := s3.New(sess)
 
-	// Optionally assume another role if UserRoleArn is provided
+	// Only attempt to assume UserRoleArn if it's provided
 	if len(p.UserRoleArn) > 0 {
 		log.WithFields(log.Fields{
 			"UserRoleArn": p.UserRoleArn,
 		}).Info("Assuming user role ARN")
 
-		creds := stscreds.NewCredentials(sess, p.UserRoleArn)
+		// Create new credentials by assuming the UserRoleArn
+		creds = stscreds.NewCredentials(sess, p.UserRoleArn)
+
 		// Create a new session with the new credentials
 		confWithUserRole := &aws.Config{
 			Region:      aws.String(p.Region),
 			Credentials: creds,
 		}
+
 		sessWithUserRole, err := session.NewSession(confWithUserRole)
 		if err != nil {
 			log.Fatalf("failed to create AWS session with user role: %v", err)
