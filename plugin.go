@@ -99,7 +99,7 @@ type Plugin struct {
 	// set externalID for assume role
 	ExternalID string
 
-	// set OIDC ID Token to retrieve temporary credentials 
+	// set OIDC ID Token to retrieve temporary credentials
 	IdToken string
 }
 
@@ -280,8 +280,7 @@ func matchExtension(match string, stringMap map[string]string) string {
 	return ""
 }
 
-func assumeRole(roleArn, roleSessionName, externalID string) *credentials.Credentials {
-	sess, _ := session.NewSession()
+func assumeRole(sess *session.Session, roleArn, roleSessionName, externalID string) *credentials.Credentials {
 	client := sts.New(sess)
 	duration := time.Hour * 1
 	stsProvider := &stscreds.AssumeRoleProvider{
@@ -434,87 +433,88 @@ func (p *Plugin) downloadS3Objects(client *s3.S3, sourceDir string) error {
 
 // createS3Client creates and returns an S3 client based on the plugin configuration
 func (p *Plugin) createS3Client() *s3.S3 {
-    conf := &aws.Config{
-        Region:           aws.String(p.Region),
-        Endpoint:         &p.Endpoint,
-        DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
-        S3ForcePathStyle: aws.Bool(p.PathStyle),
-    }
+	conf := &aws.Config{
+		Region:           aws.String(p.Region),
+		Endpoint:         &p.Endpoint,
+		DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
+		S3ForcePathStyle: aws.Bool(p.PathStyle),
+	}
 
-    // Set credentials before creating the session
-    if p.Key != "" && p.Secret != "" {
-        conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
-    } else if p.IdToken != "" && p.AssumeRole != "" {
-        // Create a temporary session for assuming the role
-        tempSess, err := session.NewSession(conf)
-        if err != nil {
-            log.Fatalf("failed to create temporary AWS session: %v", err)
-        }
+	// Set credentials before creating the session
+	if p.Key != "" && p.Secret != "" {
+		// Use static credentials
+		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
+	} else if p.IdToken != "" && p.AssumeRole != "" {
+		// Assume role with web identity
+		tempSess, err := session.NewSession(conf)
+		if err != nil {
+			log.Fatalf("failed to create temporary AWS session: %v", err)
+		}
 
-        creds, err := assumeRoleWithWebIdentity(tempSess, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken)
-        if err != nil {
-            log.Fatalf("failed to assume role with web identity: %v", err)
-        }
+		creds, err := assumeRoleWithWebIdentity(tempSess, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken)
+		if err != nil {
+			log.Fatalf("failed to assume role with web identity: %v", err)
+		}
 
-        // Update the credentials in the config
-        conf.Credentials = creds
-    } else if p.AssumeRole != "" {
-        // Create a temporary session for assuming the role
-        tempSess, err := session.NewSession(conf)
-        if err != nil {
-            log.Fatalf("failed to create temporary AWS session: %v", err)
-        }
+		// Update the credentials in the config
+		conf.Credentials = creds
+	} else if p.AssumeRole != "" {
+		// Standard AssumeRole
+		tempSess, err := session.NewSession(conf)
+		if err != nil {
+			log.Fatalf("failed to create temporary AWS session: %v", err)
+		}
 
-        creds := assumeRole(p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
+		creds := assumeRole(tempSess, p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
 
-        // Update the credentials in the config
-        conf.Credentials = creds
-    } else {
-        log.Warn("AWS Key and/or Secret not provided (falling back to EC2 instance profile or environment variables)")
-    }
+		// Update the credentials in the config
+		conf.Credentials = creds
+	} else {
+		log.Warn("AWS Key and/or Secret not provided (falling back to EC2 instance profile or environment variables)")
+	}
 
-    // Now create the session with the credentials
-    sess, err := session.NewSession(conf)
-    if err != nil {
-        log.Fatalf("failed to create AWS session: %v", err)
-    }
+	// Now create the main session with the credentials
+	sess, err := session.NewSession(conf)
+	if err != nil {
+		log.Fatalf("failed to create AWS session: %v", err)
+	}
 
-    // Create the S3 client using the session
-    client := s3.New(sess)
+	// Create the S3 client using the session
+	client := s3.New(sess)
 
-    // Optionally assume another role if UserRoleArn is provided
-    if len(p.UserRoleArn) > 0 {
-        log.WithFields(log.Fields{
-            "UserRoleArn": p.UserRoleArn,
-        }).Info("Assuming user role ARN")
+	// Optionally assume another role if UserRoleArn is provided
+	if len(p.UserRoleArn) > 0 {
+		log.WithFields(log.Fields{
+			"UserRoleArn": p.UserRoleArn,
+		}).Info("Assuming user role ARN")
 
-        creds := stscreds.NewCredentials(sess, p.UserRoleArn)
-        // Create a new session with the new credentials
-        confWithUserRole := &aws.Config{
-            Region:      aws.String(p.Region),
-            Credentials: creds,
-        }
-        sessWithUserRole, err := session.NewSession(confWithUserRole)
-        if err != nil {
-            log.Fatalf("failed to create AWS session with user role: %v", err)
-        }
+		creds := stscreds.NewCredentials(sess, p.UserRoleArn)
+		// Create a new session with the new credentials
+		confWithUserRole := &aws.Config{
+			Region:      aws.String(p.Region),
+			Credentials: creds,
+		}
+		sessWithUserRole, err := session.NewSession(confWithUserRole)
+		if err != nil {
+			log.Fatalf("failed to create AWS session with user role: %v", err)
+		}
 
-        client = s3.New(sessWithUserRole)
-    }
+		client = s3.New(sessWithUserRole)
+	}
 
-    return client
+	return client
 }
 
 func assumeRoleWithWebIdentity(sess *session.Session, roleArn, roleSessionName, idToken string) (*credentials.Credentials, error) {
-    svc := sts.New(sess)
-    input := &sts.AssumeRoleWithWebIdentityInput{
-        RoleArn:          aws.String(roleArn),
-        RoleSessionName:  aws.String(roleSessionName),
-        WebIdentityToken: aws.String(idToken),
-    }
-    result, err := svc.AssumeRoleWithWebIdentity(input)
-    if err != nil {
-        log.Fatalf("failed to assume role with web identity: %v", err)
-    }
-    return credentials.NewStaticCredentials(*result.Credentials.AccessKeyId, *result.Credentials.SecretAccessKey, *result.Credentials.SessionToken), nil
+	svc := sts.New(sess)
+	input := &sts.AssumeRoleWithWebIdentityInput{
+		RoleArn:          aws.String(roleArn),
+		RoleSessionName:  aws.String(roleSessionName),
+		WebIdentityToken: aws.String(idToken),
+	}
+	result, err := svc.AssumeRoleWithWebIdentity(input)
+	if err != nil {
+		log.Fatalf("failed to assume role with web identity: %v", err)
+	}
+	return credentials.NewStaticCredentials(*result.Credentials.AccessKeyId, *result.Credentials.SecretAccessKey, *result.Credentials.SessionToken), nil
 }
