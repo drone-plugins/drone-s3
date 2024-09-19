@@ -460,6 +460,11 @@ func (p *Plugin) createS3Client() *s3.S3 {
         log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
     }
 
+	sess, err = session.NewSession(conf)
+    if err != nil {
+        log.Fatalf("failed to create AWS session: %v", err)
+    }
+
     client := s3.New(sess, conf)
 
     if len(p.UserRoleArn) > 0 {
