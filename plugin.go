@@ -29,6 +29,7 @@ type Plugin struct {
 	AssumeRoleSessionName string
 	Bucket                string
 	UserRoleArn           string
+	UserRoleExternalID    string // New field for UserRoleArn ExternalID
 
 	// if not "", enable server-side encryption
 	// valid values are:
