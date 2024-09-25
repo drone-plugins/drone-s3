@@ -48,7 +48,7 @@ docker: Error response from daemon: Container command
 
 Execute from the working directory:
 
-* For upload
+* For Upload
 ```
 docker run --rm \
   -e PLUGIN_SOURCE=<source> \
@@ -61,7 +61,7 @@ docker run --rm \
   plugins/s3 --dry-run
 ```
 
-* For download
+* For Download
 ```
 docker run --rm \
   -e PLUGIN_SOURCE=<source directory to be downloaded from bucket> \

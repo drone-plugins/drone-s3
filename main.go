@@ -53,6 +53,11 @@ func main() {
 			EnvVar: "PLUGIN_USER_ROLE_ARN,AWS_USER_ROLE_ARN",
 		},
 		cli.StringFlag{
+			Name:   "user-role-external-id",
+			Usage:  "external ID to use when assuming secondary role",
+			EnvVar: "PLUGIN_USER_ROLE_EXTERNAL_ID",
+		},
+		cli.StringFlag{
 			Name:   "bucket",
 			Usage:  "aws bucket",
 			Value:  "us-east-1",
@@ -166,6 +171,7 @@ func run(c *cli.Context) error {
 		AssumeRoleSessionName: c.String("assume-role-session-name"),
 		Bucket:                c.String("bucket"),
 		UserRoleArn:           c.String("user-role-arn"),
+		UserRoleExternalID:    c.String("user-role-external-id"),
 		Region:                c.String("region"),
 		Access:                c.String("acl"),
 		Source:                c.String("source"),
@@ -181,7 +187,7 @@ func run(c *cli.Context) error {
 		PathStyle:             c.Bool("path-style"),
 		DryRun:                c.Bool("dry-run"),
 		ExternalID:            c.String("external-id"),
-		IdToken: 			   c.String("oidc-token-id"),
+		IdToken:               c.String("oidc-token-id"),
 	}
 
 	return plugin.Exec()
