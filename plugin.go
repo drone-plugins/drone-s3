@@ -494,6 +494,7 @@ func (p *Plugin) createS3Client() *s3.S3 {
 	}
 
 	return client
+
 }
 
 func assumeRoleWithWebIdentity(sess *session.Session, roleArn, roleSessionName, idToken string) (*credentials.Credentials, error) {
