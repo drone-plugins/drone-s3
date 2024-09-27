@@ -485,13 +485,8 @@ func (p *Plugin) createS3Client() *s3.S3 {
             Region:      aws.String(p.Region),
             Credentials: creds,
         }
-
-        sessWithUserRole, err := session.NewSession(confWithUserRole)
-        if err != nil {
-            log.Fatalf("Failed to create AWS session with user role: %v", err)
-        }
-
-        client = s3.New(sessWithUserRole)
+	
+	client = s3.New(sess, &confRoleArn)
     }
 
     return client
