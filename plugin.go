@@ -481,12 +481,12 @@ func (p *Plugin) createS3Client() *s3.S3 {
         })
 
         // Create a new session with the new credentials
-        confWithUserRole := &aws.Config{
+        confRoleArn := &aws.Config{
             Region:      aws.String(p.Region),
             Credentials: creds,
         }
 	
-	client = s3.New(sess, &confWithUserRole)
+	client = s3.New(sess, &confRoleArn)
     }
 
     return client
