@@ -30,6 +30,7 @@ type Plugin struct {
 	Bucket                string
 	UserRoleArn           string
 	UserRoleExternalID    string // New field for UserRoleArn ExternalID
+	UserRoleSessionName   string
 
 	// if not "", enable server-side encryption
 	// valid values are:
@@ -281,22 +282,28 @@ func matchExtension(match string, stringMap map[string]string) string {
 	return ""
 }
 
-func assumeRole(roleArn, roleSessionName, externalID string) *credentials.Credentials {
-	sess, _ := session.NewSession()
-	client := sts.New(sess)
+func assumeRole(sess *session.Session, roleArn, roleSessionName, externalID string) (*credentials.Credentials, error) {
+	stsClient := sts.New(sess)
 	duration := time.Hour * 1
 	stsProvider := &stscreds.AssumeRoleProvider{
-		Client:          client,
+		Client:          stsClient,
 		Duration:        duration,
 		RoleARN:         roleArn,
 		RoleSessionName: roleSessionName,
 	}
 
 	if externalID != "" {
-		stsProvider.ExternalID = &externalID
+		stsProvider.ExternalID = aws.String(externalID)
 	}
 
-	return credentials.NewCredentials(stsProvider)
+	creds := credentials.NewCredentials(stsProvider)
+	// Force retrieval of credentials to catch any errors
+	_, err := creds.Get()
+	if err != nil {
+		return nil, err
+	}
+
+	return creds, nil
 }
 
 // resolveKey is a helper function that returns s3 object key where file present at srcPath is uploaded to.
@@ -447,6 +454,7 @@ func (p *Plugin) createS3Client() *s3.S3 {
 		log.Fatalf("failed to create AWS session: %v", err)
 	}
 
+	// Credential determination
 	if p.Key != "" && p.Secret != "" {
 		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
 	} else if p.IdToken != "" && p.AssumeRole != "" {
@@ -456,11 +464,16 @@ func (p *Plugin) createS3Client() *s3.S3 {
 		}
 		conf.Credentials = creds
 	} else if p.AssumeRole != "" {
-		conf.Credentials = assumeRole(p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
+		creds, err := assumeRole(sess, p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
+		if err != nil {
+			log.Fatalf("failed to assume role: %v", err)
+		}
+		conf.Credentials = creds
 	} else {
 		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
 	}
 
+	// Recreate session if credentials are set
 	sess, err = session.NewSession(conf)
 	if err != nil {
 		log.Fatalf("failed to create AWS session: %v", err)
@@ -473,12 +486,20 @@ func (p *Plugin) createS3Client() *s3.S3 {
 			"UserRoleArn": p.UserRoleArn,
 		}).Info("Assuming user role ARN")
 
-		// Create new credentials by assuming the UserRoleArn with ExternalID
 		creds := stscreds.NewCredentials(sess, p.UserRoleArn, func(provider *stscreds.AssumeRoleProvider) {
 			if p.UserRoleExternalID != "" {
 				provider.ExternalID = aws.String(p.UserRoleExternalID)
 			}
+			if p.UserRoleSessionName != "" {
+				provider.RoleSessionName = p.UserRoleSessionName
+			}
 		})
+
+		// Force retrieval of credentials to catch any errors
+		_, err := creds.Get()
+		if err != nil {
+			log.Fatalf("Failed to assume user role: %v", err)
+		}
 
 		// Create a new session with the new credentials
 		confWithUserRole := &aws.Config{
@@ -495,7 +516,6 @@ func (p *Plugin) createS3Client() *s3.S3 {
 	}
 
 	return client
-
 }
 
 func assumeRoleWithWebIdentity(sess *session.Session, roleArn, roleSessionName, idToken string) (*credentials.Credentials, error) {
