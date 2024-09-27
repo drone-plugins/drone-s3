@@ -469,27 +469,14 @@ func (p *Plugin) createS3Client() *s3.S3 {
     client := s3.New(sess, conf)
 
     if len(p.UserRoleArn) > 0 {
-        log.WithFields(log.Fields{
-            "UserRoleArn": p.UserRoleArn,
-        }).Info("Assuming user role ARN")
-
-        // Create new credentials by assuming the UserRoleArn with ExternalID
-        creds := stscreds.NewCredentials(sess, p.UserRoleArn, func(provider *stscreds.AssumeRoleProvider) {
-            if p.UserRoleExternalID != "" {
-                provider.ExternalID = aws.String(p.UserRoleExternalID)
-            }
-        })
-
-        // Create a new configuration with the new credentials
         confRoleArn := aws.Config{
-            Region:           aws.String(p.Region),
-            Endpoint:         &p.Endpoint,
-            DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
-            S3ForcePathStyle: aws.Bool(p.PathStyle),
-            Credentials:      creds,
+            Region:      aws.String(p.Region),
+            Credentials: stscreds.NewCredentials(sess, p.UserRoleArn, func(provider *stscreds.AssumeRoleProvider) {
+                if p.UserRoleExternalID != "" {
+                    provider.ExternalID = aws.String(p.UserRoleExternalID)
+                }
+            }),
         }
-
-        // Update the S3 client with the new configuration
         client = s3.New(sess, &confRoleArn)
     }
 
