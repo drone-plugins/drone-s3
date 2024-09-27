@@ -475,6 +475,7 @@ func (p *Plugin) createS3Client() *s3.S3 {
 				if p.UserRoleExternalID != "" {
 					provider.ExternalID = aws.String(p.UserRoleExternalID)
 				}
+				provider.RoleSessionName = "user-role-session"
 			}),
 		}
 		client = s3.New(sess, &confRoleArn)
