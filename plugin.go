@@ -469,16 +469,41 @@ func (p *Plugin) createS3Client() *s3.S3 {
 	client := s3.New(sess, conf)
 
 	if len(p.UserRoleArn) > 0 {
-		confRoleArn := aws.Config{
-			Region: aws.String(p.Region),
-			Credentials: stscreds.NewCredentials(sess, p.UserRoleArn, func(provider *stscreds.AssumeRoleProvider) {
-				if p.UserRoleExternalID != "" {
-					provider.ExternalID = aws.String(p.UserRoleExternalID)
-				}
-				provider.RoleSessionName = "user-role-session"
-			}),
-		}
-		client = s3.New(sess, &confRoleArn)
+	log.WithFields(log.Fields{
+	    "UserRoleArn": p.UserRoleArn,
+	}).Info("Assuming user role ARN")
+	
+	// Create new credentials by assuming the UserRoleArn with ExternalID
+	creds := stscreds.NewCredentials(sess, p.UserRoleArn, func(provider *stscreds.AssumeRoleProvider) {
+	    if p.UserRoleExternalID != "" {
+		provider.ExternalID = aws.String(p.UserRoleExternalID)
+	    }
+	    provider.RoleSessionName = "user-role-session"
+	})
+	
+	// Force retrieval of credentials to catch any errors
+	_, err := creds.Get()
+	if err != nil {
+	    log.Fatalf("Failed to assume user role: %v", err)
+	}
+	
+	// Create a new AWS config with the new credentials
+	confWithUserRole := &aws.Config{
+	    Region:           aws.String(p.Region),
+	    Endpoint:         &p.Endpoint,
+	    DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
+	    S3ForcePathStyle: aws.Bool(p.PathStyle),
+	    Credentials:      creds,
+	}
+	
+	// Create a new session with the new configuration
+	sessWithUserRole, err := session.NewSession(confWithUserRole)
+	if err != nil {
+	    log.Fatalf("failed to create AWS session with user role: %v", err)
+	}
+	
+	// Update the S3 client with the new session
+	client = s3.New(sessWithUserRole, confWithUserRole)
 	}
 
 	return client
