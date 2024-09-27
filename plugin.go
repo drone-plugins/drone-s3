@@ -486,7 +486,7 @@ func (p *Plugin) createS3Client() *s3.S3 {
             Credentials: creds,
         }
 	
-	client = s3.New(sess, &confRoleArn)
+	client = s3.New(sess, &confWithUserRole)
     }
 
     return client
