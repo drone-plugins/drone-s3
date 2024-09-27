@@ -480,25 +480,17 @@ func (p *Plugin) createS3Client() *s3.S3 {
             }
         })
 
-	_, err := creds.Get()
-	if err != nil {
-	    log.Fatalf("Failed to assume user role: %v", err)
-	}
+        // Create a new configuration with the new credentials
+        confRoleArn := aws.Config{
+            Region:           aws.String(p.Region),
+            Endpoint:         &p.Endpoint,
+            DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
+            S3ForcePathStyle: aws.Bool(p.PathStyle),
+            Credentials:      creds,
+        }
 
-	confWithUserRole := &aws.Config{
-	    Region:           aws.String(p.Region),
-	    Endpoint:         &p.Endpoint,
-	    DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
-	    S3ForcePathStyle: aws.Bool(p.PathStyle),
-	    Credentials:      creds,
-	}
-
-	sessWithUserRole, err := session.NewSession(confWithUserRole)
-	if err != nil {
-	    log.Fatalf("failed to create AWS session with user role: %v", err)
-	}
-	
-	client = s3.New(sessWithUserRole, confWithUserRole)
+        // Update the S3 client with the new configuration
+        client = s3.New(sess, &confRoleArn)
     }
 
     return client
