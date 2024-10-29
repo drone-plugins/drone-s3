@@ -282,11 +282,6 @@ func matchExtension(match string, stringMap map[string]string) string {
 }
 
 func assumeRole(roleArn, roleSessionName, externalID string) *credentials.Credentials {
-	log.WithFields(log.Fields{
-		"roleArn":         roleArn,
-		"roleSessionName": roleSessionName,
-		"externalID":      externalID,
-	}).Info("Attempting to assume role")
 
 	sess, _ := session.NewSession()
 	client := sts.New(sess)
