@@ -295,18 +295,9 @@ func assumeRole(roleArn, roleSessionName, externalID string) *credentials.Creden
 
 	if externalID != "" {
 		stsProvider.ExternalID = &externalID
-		log.WithField("externalID", externalID).Info("Using external ID for assume role")
 	}
 
 	creds := credentials.NewCredentials(stsProvider)
-
-	// Test the credentials
-	_, err := creds.Get()
-	if err != nil {
-		log.WithError(err).Error("Failed to assume role")
-	} else {
-		log.Info("Successfully assumed role")
-	}
 
 	return creds
 }
