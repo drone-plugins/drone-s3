@@ -194,11 +194,3 @@ func run(c *cli.Context) error {
 	return plugin.Exec()
 }
 
-func printEnvVar(varName string) {
-	value := os.Getenv(varName)
-	if value != "" {
-		log.Printf("%s: %s\n", varName, value)
-	} else {
-		log.Printf("%s is not set\n", varName)
-	}
-}
