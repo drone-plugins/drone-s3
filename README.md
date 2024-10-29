@@ -74,3 +74,26 @@ docker run --rm \
   -w $(pwd) \
   plugins/s3 --dry-run
 ```
+
+## Configuration Variables for AWS Role Assumption with External ID
+
+The following environment variables allow the plugin to assume a specified AWS IAM role using IRSA, using credentials and an ExternalID if required by the role’s trust policy.
+
+### Variables
+
+#### `PLUGIN_USER_ROLE_ARN`
+
+- **Type**: String
+- **Required**: No
+- **Description**: Specifies the Amazon Resource Name (ARN) for the IAM role to be assumed by the plugin. This allows the plugin to inherit permissions associated with this role, facilitating access to specific AWS resources.
+
+#### `PLUGIN_USER_ROLE_EXTERNAL_ID`
+
+- **Type**: String
+- **Required**: No
+- **Description**: Provides the ExternalID necessary for the role assumption process when the role's trust policy mandates an ExternalID. This is often required for added security, ensuring that only authorized entities assume the role.
+
+### Usage Notes
+
+- **Role Assumption without ExternalID**: If only `PLUGIN_USER_ROLE_ARN` is set, the plugin may fail with an AccessDenied 403 error if the role requires an ExternalID.
+**Solution** : If the role (Secondary role) requires an External ID then pass it through `PLUGIN_USER_ROLE_EXTERNAL_ID`.

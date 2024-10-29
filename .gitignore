@@ -28,3 +28,5 @@ vendor/
 
 coverage.out
 drone-s3
+
+update_script.sh
