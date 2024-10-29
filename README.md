@@ -95,5 +95,4 @@ The following environment variables allow the plugin to assume a specified AWS I
 
 ### Usage Notes
 
-- **Role Assumption without ExternalID**: If only `PLUGIN_USER_ROLE_ARN` is set, the plugin may fail with an AccessDenied 403 error if the role requires an ExternalID.
-**Solution** : If the role (Secondary role) requires an External ID then pass it through `PLUGIN_USER_ROLE_EXTERNAL_ID`.
+- If the role secondary role (`PLUGIN_USER_ROLE_ARN`) requires an External ID then pass it through `PLUGIN_USER_ROLE_EXTERNAL_ID`.
