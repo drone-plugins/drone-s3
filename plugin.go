@@ -447,16 +447,6 @@ func (p *Plugin) downloadS3Objects(client *s3.S3, sourceDir string) error {
 
 // createS3Client creates and returns an S3 client based on the plugin configuration
 func (p *Plugin) createS3Client() *s3.S3 {
-	log.WithFields(log.Fields{
-		"Region":                p.Region,
-		"Endpoint":              p.Endpoint,
-		"PathStyle":             p.PathStyle,
-		"ExternalID":            p.ExternalID,
-		"Bucket":                p.Bucket,
-		"AssumeRole":            p.AssumeRole,
-		"AssumeRoleSessionName": p.AssumeRoleSessionName,
-		"UserRoleArn":           p.UserRoleArn,
-	}).Info("Creating S3 client with connector details")
 
 	conf := &aws.Config{
 		Region:           aws.String(p.Region),
