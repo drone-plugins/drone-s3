@@ -163,36 +163,6 @@ func run(c *cli.Context) error {
 		_ = godotenv.Load(c.String("env-file"))
 	}
 
-	envVars := []string{
-		"PLUGIN_ENDPOINT",
-		"PLUGIN_ACCESS_KEY",
-		"PLUGIN_SECRET_KEY",
-		"PLUGIN_ASSUME_ROLE",
-		"PLUGIN_ASSUME_ROLE_SESSION_NAME",
-		"PLUGIN_USER_ROLE_ARN",
-		"PLUGIN_USER_ROLE_EXTERNAL_ID",
-		"PLUGIN_BUCKET",
-		"PLUGIN_REGION",
-		"PLUGIN_ACL",
-		"PLUGIN_SOURCE",
-		"PLUGIN_TARGET",
-		"PLUGIN_STRIP_PREFIX",
-		"PLUGIN_EXCLUDE",
-		"PLUGIN_ENCRYPTION",
-		"PLUGIN_DOWNLOAD",
-		"PLUGIN_DRY_RUN",
-		"PLUGIN_PATH_STYLE",
-		"PLUGIN_CONTENT_TYPE",
-		"PLUGIN_CONTENT_ENCODING",
-		"PLUGIN_CACHE_CONTROL",
-		"PLUGIN_STORAGE_CLASS",
-		"PLUGIN_EXTERNAL_ID",
-		"PLUGIN_OIDC_TOKEN_ID",
-	}
-
-	for _, envVar := range envVars {
-		printEnvVar(envVar)
-	}
 
 	plugin := Plugin{
 		Endpoint:              c.String("endpoint"),
