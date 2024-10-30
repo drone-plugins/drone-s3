@@ -75,9 +75,9 @@ docker run --rm \
   plugins/s3 --dry-run
 ```
 
-## Configuration Variables for AWS Role Assumption with External ID
+## Configuration Variables for Secondary Role Assumption with External ID
 
-The following environment variables allow the plugin to assume a specified AWS IAM role using IRSA, using credentials and an ExternalID if required by the role’s trust policy.
+The following environment variables enable the plugin to assume a secondary IAM role using IRSA, with an External ID if required by the role’s trust policy.
 
 ### Variables
 
@@ -85,15 +85,14 @@ The following environment variables allow the plugin to assume a specified AWS I
 
 - **Type**: String
 - **Required**: No
-- **Description**: Specifies the Amazon Resource Name (ARN) for the IAM role to be assumed by the plugin. This allows the plugin to inherit permissions associated with this role, facilitating access to specific AWS resources.
+- **Description**: Specifies the secondary IAM role to be assumed by the plugin, allowing it to inherit permissions associated with this role and access specific AWS resources.
 
 #### `PLUGIN_USER_ROLE_EXTERNAL_ID`
 
 - **Type**: String
 - **Required**: No
-- **Description**: Provides the ExternalID necessary for the role assumption process when the role's trust policy mandates an ExternalID. This is often required for added security, ensuring that only authorized entities assume the role.
+- **Description**: Provide the External ID necessary for the role assumption process if the secondary role’s trust policy mandates it. This is often required for added security, ensuring that only authorized entities assume the role.
 
 ### Usage Notes
 
-- **Role Assumption without ExternalID**: If only `PLUGIN_USER_ROLE_ARN` is set, the plugin may fail with an AccessDenied 403 error if the role requires an ExternalID.
-**Solution** : If the role (Secondary role) requires an External ID then pass it through `PLUGIN_USER_ROLE_EXTERNAL_ID`.
+- If the role secondary role (`PLUGIN_USER_ROLE_ARN`) requires an External ID then pass it through `PLUGIN_USER_ROLE_EXTERNAL_ID`.
