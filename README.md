@@ -80,6 +80,7 @@ docker run --rm \
 The following environment variables enable the plugin to assume a secondary IAM role using IRSA, with an External ID if required by the role’s trust policy.
 
 ### Variables
+
 #### `PLUGIN_USER_ROLE_ARN`
 
 - **Type**: String
