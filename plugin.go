@@ -465,6 +465,14 @@ func (p *Plugin) createS3Client() *s3.S3 {
 		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
 	}
 
+	// Fixing CI-14887 and CI-14134
+	if p.Key != "" && p.Secret != "" && len(p.UserRoleArn) > 0 {
+		sess, err = session.NewSession(conf)
+		if err != nil {
+			log.Fatalf("failed to create AWS session for access key method with cross account enabled: %v", err)
+		}
+	}
+
 	client := s3.New(sess, conf)
 
 	if len(p.UserRoleArn) > 0 {
