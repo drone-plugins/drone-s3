@@ -12,7 +12,7 @@ Drone plugin to publish files and artifacts to Amazon S3 or Minio. For the
 usage information and a listing of the available options please take a look at
 [the docs](http://plugins.drone.io/drone-plugins/drone-s3/).
 
-Run the following script to install git-leaks support to this repo. Testing s3 pipeline.
+Run the following script to install git-leaks support to this repo. Testing.
 ```
 chmod +x ./git-hooks/install.sh
 ./git-hooks/install.sh
