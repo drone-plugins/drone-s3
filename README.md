@@ -75,6 +75,8 @@ docker run --rm \
   plugins/s3 --dry-run
 ```
 
+- Refer this doc for details to use in Harness.
+
 ## Configuration Variables for Secondary Role Assumption with External ID
 
 The following environment variables enable the plugin to assume a secondary IAM role using IRSA, with an External ID if required by the role’s trust policy.
