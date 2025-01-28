@@ -75,7 +75,7 @@ docker run --rm \
   plugins/s3 --dry-run
 ```
 
-- Refer this [doc](https://developer.harness.io/docs/continuous-integration/use-ci/build-and-upload-artifacts/upload-artifacts/upload-artifacts-to-s3/) for details to use it in Harness.
+- Refer this [doc](https://developer.harness.io/docs/continuous-integration/use-ci/build-and-upload-artifacts/upload-artifacts/upload-artifacts-to-s3/) for details to use it in Harness. 
 
 ## Configuration Variables for Secondary Role Assumption with External ID
 
