@@ -278,12 +278,6 @@ pipeline:
               caching:
                 enabled: false
                 paths: []
-              platform:
-                os: Windows
-                arch: Amd64
-              runtime:
-                type: Cloud
-                spec: {}
               execution:
                 steps:
                   - step:
@@ -339,6 +333,15 @@ pipeline:
                       when:
                         stageStatus: Success
                         condition: <+codebase.build.type> == "branch"
+              infrastructure:
+                type: VM
+                spec:
+                  type: Pool
+                  spec:
+                    poolName: windows-2019
+                    os: Windows
+            delegateSelectors:
+              - windows-vm
     - stage:
         name: Manifest and Release
         identifier: Manifest_and_Release
