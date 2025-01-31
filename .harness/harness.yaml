@@ -76,7 +76,7 @@ pipeline:
                       identifier: Run_1
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
-                        image: golang:1.22.4
+                        image: golang:1.22.7
                         shell: Sh
                         command: |-
                           # force go modules
