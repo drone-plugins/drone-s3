@@ -420,6 +420,19 @@ pipeline:
                   when:
                     stageStatus: Success
                     condition: <+codebase.build.type> == "tag"
+              - step:
+                  name: Upload_Binaries_To_GCS
+                  identifier: Upload_Binaries_To_GCS
+                  template:
+                    templateRef: Upload_Binary_GCS_TI
+                    versionLabel: v1
+                    templateInputs:
+                      type: GCSUpload
+                      spec:
+                        sourcePath: /harness/release
+                        target: drone-s3/<+trigger.tag>/
+                      when:
+                        condition: <+codebase.build.type> == "tag"
         variables:
           - name: DRONE_REPO_OWNER
             type: String
