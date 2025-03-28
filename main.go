@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -51,6 +51,11 @@ func main() {
 			Name:   "user-role-arn",
 			Usage:  "AWS user role",
 			EnvVar: "PLUGIN_USER_ROLE_ARN,AWS_USER_ROLE_ARN",
+		},
+		cli.StringFlag{
+			Name:   "user-role-external-id",
+			Usage:  "external ID to use when assuming secondary role",
+			EnvVar: "PLUGIN_USER_ROLE_EXTERNAL_ID",
 		},
 		cli.StringFlag{
 			Name:   "bucket",
@@ -149,7 +154,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 }
 
@@ -157,6 +162,7 @@ func run(c *cli.Context) error {
 	if c.String("env-file") != "" {
 		_ = godotenv.Load(c.String("env-file"))
 	}
+
 
 	plugin := Plugin{
 		Endpoint:              c.String("endpoint"),
@@ -166,6 +172,7 @@ func run(c *cli.Context) error {
 		AssumeRoleSessionName: c.String("assume-role-session-name"),
 		Bucket:                c.String("bucket"),
 		UserRoleArn:           c.String("user-role-arn"),
+		UserRoleExternalID:    c.String("user-role-external-id"),
 		Region:                c.String("region"),
 		Access:                c.String("acl"),
 		Source:                c.String("source"),
@@ -181,8 +188,9 @@ func run(c *cli.Context) error {
 		PathStyle:             c.Bool("path-style"),
 		DryRun:                c.Bool("dry-run"),
 		ExternalID:            c.String("external-id"),
-		IdToken: 			   c.String("oidc-token-id"),
+		IdToken:               c.String("oidc-token-id"),
 	}
 
 	return plugin.Exec()
 }
+

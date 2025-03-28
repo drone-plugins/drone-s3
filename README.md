@@ -12,6 +12,12 @@ Drone plugin to publish files and artifacts to Amazon S3 or Minio. For the
 usage information and a listing of the available options please take a look at
 [the docs](http://plugins.drone.io/drone-plugins/drone-s3/).
 
+Run the following script to install git-leaks support to this repo.
+```
+chmod +x ./git-hooks/install.sh
+./git-hooks/install.sh
+```
+
 ## Build
 
 Build the binary with the following commands:
@@ -42,7 +48,7 @@ docker: Error response from daemon: Container command
 
 Execute from the working directory:
 
-* For upload
+* For Upload
 ```
 docker run --rm \
   -e PLUGIN_SOURCE=<source> \
@@ -55,7 +61,7 @@ docker run --rm \
   plugins/s3 --dry-run
 ```
 
-* For download
+* For Download
 ```
 docker run --rm \
   -e PLUGIN_SOURCE=<source directory to be downloaded from bucket> \
@@ -68,3 +74,25 @@ docker run --rm \
   -w $(pwd) \
   plugins/s3 --dry-run
 ```
+
+## Configuration Variables for Secondary Role Assumption with External ID
+
+The following environment variables enable the plugin to assume a secondary IAM role using IRSA, with an External ID if required by the role’s trust policy.
+
+### Variables
+
+#### `PLUGIN_USER_ROLE_ARN`
+
+- **Type**: String
+- **Required**: No
+- **Description**: Specifies the secondary IAM role to be assumed by the plugin, allowing it to inherit permissions associated with this role and access specific AWS resources.
+
+#### `PLUGIN_USER_ROLE_EXTERNAL_ID`
+
+- **Type**: String
+- **Required**: No
+- **Description**: Provide the External ID necessary for the role assumption process if the secondary role’s trust policy mandates it. This is often required for added security, ensuring that only authorized entities assume the role.
+
+### Usage Notes
+
+- If the role secondary role (`PLUGIN_USER_ROLE_ARN`) requires an External ID then pass it through `PLUGIN_USER_ROLE_EXTERNAL_ID`.
