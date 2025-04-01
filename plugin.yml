@@ -1,3 +1,4 @@
 run:
   binary:
     source: https://github.com/drone-plugins/drone-s3/releases/download/{{ release }}/drone-s3-{{ os }}-{{ arch }}.zst
+    fallback_source: https://app.harness.io/storage/harness-download/harness-ti/drone-s3/{{ release }}/drone-s3-{{ os }}-{{ arch }}.zst
