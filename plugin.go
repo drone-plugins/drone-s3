@@ -489,13 +489,7 @@ func (p *Plugin) createS3Client() *s3.S3 {
 		})
 
 		// Create new client with same config but updated credentials
-		client = s3.New(sess, &aws.Config{
-			Region:           aws.String(p.Region),
-			Endpoint:         &p.Endpoint,
-			DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
-			S3ForcePathStyle: aws.Bool(p.PathStyle),
-			Credentials:      creds,
-		})
+		client = s3.New(sess, &aws.Config{Credentials: creds})
 	}
 
 	return client
