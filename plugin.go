@@ -143,7 +143,7 @@ func (p *Plugin) Exec() error {
 	if p.StripPrefix != "" {
 		if err := validateStripPrefix(p.StripPrefix); err != nil {
 			log.WithFields(log.Fields{
-				"error": err,
+				"error":   err,
 				"pattern": p.StripPrefix,
 			}).Error("Invalid strip_prefix pattern")
 			return err
@@ -322,13 +322,13 @@ func resolveKey(target, srcPath, stripPrefix string) string {
 	if err != nil {
 		// Log error but continue with original path
 		log.WithFields(log.Fields{
-			"error": err,
-			"path": srcPath,
+			"error":   err,
+			"path":    srcPath,
 			"pattern": stripPrefix,
 		}).Warning("Failed to strip prefix, using original path")
 		stripped = srcPath
 	}
-	
+
 	key := filepath.Join(target, stripped)
 	key = filepath.ToSlash(key)
 	if !strings.HasPrefix(key, "/") {
@@ -490,7 +490,6 @@ func (p *Plugin) createS3Client() *s3.S3 {
 		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
 	}
 
-
 	// Create session with primary credentials
 	sess, err = session.NewSession(conf)
 	if err != nil {
@@ -503,8 +502,8 @@ func (p *Plugin) createS3Client() *s3.S3 {
 	// Handle secondary role assumption if UserRoleArn is provided
 	if len(p.UserRoleArn) > 0 {
 		log.WithField("UserRoleArn", p.UserRoleArn).Info("Using user role ARN")
-		
-		// Create credentials using the existing session for role assumption 
+
+		// Create credentials using the existing session for role assumption
 		// by assuming the UserRoleArn (with ExternalID when provided)
 		creds := stscreds.NewCredentials(sess, p.UserRoleArn, func(provider *stscreds.AssumeRoleProvider) {
 			if p.UserRoleExternalID != "" {
@@ -539,23 +538,23 @@ func validateStripPrefix(pattern string) error {
 	if !strings.HasPrefix(pattern, "/") {
 		return fmt.Errorf("strip_prefix must start with '/'")
 	}
-	
+
 	// Check length limit
 	if len(pattern) > 256 {
 		return fmt.Errorf("strip_prefix pattern too long (max 256 characters)")
 	}
-	
+
 	// Count wildcards
 	wildcardCount := strings.Count(pattern, "*") + strings.Count(pattern, "?")
 	if wildcardCount > 20 {
 		return fmt.Errorf("strip_prefix pattern contains too many wildcards (max 20)")
 	}
-	
+
 	// Check for empty segments
 	if strings.Contains(pattern, "//") {
 		return fmt.Errorf("strip_prefix pattern contains empty segment '//'")
 	}
-	
+
 	// Check for invalid ** usage (must be standalone segment)
 	parts := strings.Split(pattern, "/")
 	for _, part := range parts {
@@ -563,7 +562,7 @@ func validateStripPrefix(pattern string) error {
 			return fmt.Errorf("'**' must be a standalone directory segment")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -571,16 +570,16 @@ func validateStripPrefix(pattern string) error {
 func patternToRegex(pattern string) (*regexp.Regexp, error) {
 	// Escape special regex characters except our wildcards
 	escaped := regexp.QuoteMeta(pattern)
-	
-	// Replace escaped wildcards with regex equivalents  
+
+	// Replace escaped wildcards with regex equivalents
 	// Order matters: ** must be replaced before *
-	escaped = strings.ReplaceAll(escaped, `\*\*`, "(.+)")      // ** -> (.+) any depth
-	escaped = strings.ReplaceAll(escaped, `\*`, "([^/]+)")      // * -> ([^/]+) one segment  
-	escaped = strings.ReplaceAll(escaped, `\?`, "([^/])")       // ? -> ([^/]) one character
-	
+	escaped = strings.ReplaceAll(escaped, `\*\*`, "(.+)")  // ** -> (.+) any depth
+	escaped = strings.ReplaceAll(escaped, `\*`, "([^/]+)") // * -> ([^/]+) one segment
+	escaped = strings.ReplaceAll(escaped, `\?`, "([^/])")  // ? -> ([^/]) one character
+
 	// Anchor at start
 	escaped = "^" + escaped
-	
+
 	return regexp.Compile(escaped)
 }
 
@@ -589,12 +588,12 @@ func stripWildcardPrefix(path, pattern string) (string, error) {
 	if pattern == "" {
 		return path, nil
 	}
-	
+
 	// Normalize paths
 	path = filepath.ToSlash(path)
 	pattern = filepath.ToSlash(pattern)
-	
-	// Handle literal prefix (no wildcards) 
+
+	// Handle literal prefix (no wildcards)
 	if !strings.ContainsAny(pattern, "*?") {
 		stripped := strings.TrimPrefix(path, pattern)
 		// Validate result for literal prefix
@@ -603,28 +602,28 @@ func stripWildcardPrefix(path, pattern string) (string, error) {
 		}
 		return stripped, nil
 	}
-	
+
 	// Convert pattern to regex
 	re, err := patternToRegex(pattern)
 	if err != nil {
 		return path, fmt.Errorf("invalid pattern: %v", err)
 	}
-	
+
 	// Find matches
 	matches := re.FindStringSubmatch(path)
 	if len(matches) == 0 {
 		// No match, return path unchanged
 		return path, nil
 	}
-	
+
 	// Calculate what to strip (the full match)
 	fullMatch := matches[0]
 	stripped := strings.TrimPrefix(path, fullMatch)
-	
+
 	// Validate result
 	if stripped == "" || stripped == "/" || strings.TrimPrefix(stripped, "/") == "" {
 		return path, fmt.Errorf("strip_prefix removes entire path for '%s'", filepath.Base(path))
 	}
-	
+
 	return stripped, nil
 }

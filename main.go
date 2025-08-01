@@ -163,7 +163,6 @@ func run(c *cli.Context) error {
 		_ = godotenv.Load(c.String("env-file"))
 	}
 
-
 	plugin := Plugin{
 		Endpoint:              c.String("endpoint"),
 		Key:                   c.String("access-key"),
@@ -193,4 +192,3 @@ func run(c *cli.Context) error {
 
 	return plugin.Exec()
 }
-
