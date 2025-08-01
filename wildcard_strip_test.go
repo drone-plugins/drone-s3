@@ -111,7 +111,7 @@ func TestStripWildcardPrefix(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := stripWildcardPrefix(tt.path, tt.pattern)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("stripWildcardPrefix(%q, %q) expected error, got nil", tt.path, tt.pattern)
@@ -174,7 +174,7 @@ func TestPatternToRegex(t *testing.T) {
 			if err != nil {
 				t.Fatalf("patternToRegex(%q) error: %v", tt.pattern, err)
 			}
-			
+
 			matches := re.MatchString(tt.testPath)
 			if matches != tt.matches {
 				t.Errorf("patternToRegex(%q).MatchString(%q) = %v, want %v", tt.pattern, tt.testPath, matches, tt.matches)
@@ -236,7 +236,7 @@ func TestResolveKeyWithWildcards(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := resolveKey(tt.target, tt.srcPath, tt.stripPrefix)
 			if result != tt.expected {
-				t.Errorf("resolveKey(%q, %q, %q) = %q, want %q", 
+				t.Errorf("resolveKey(%q, %q, %q) = %q, want %q",
 					tt.target, tt.srcPath, tt.stripPrefix, result, tt.expected)
 			}
 		})
@@ -244,7 +244,7 @@ func TestResolveKeyWithWildcards(t *testing.T) {
 }
 
 // ===============================
-// ERROR HANDLING TESTS  
+// ERROR HANDLING TESTS
 // ===============================
 
 func TestWildcardErrorHandling(t *testing.T) {
@@ -311,13 +311,13 @@ func TestWildcardErrorHandling(t *testing.T) {
 func BenchmarkStripWildcardPrefix(b *testing.B) {
 	path := "/harness/artifacts/build-12345/services/auth/v1.2.3/auth-service.zip"
 	pattern := "/harness/artifacts/*/services/*/"
-	
+
 	// Pre-compile pattern (this would happen once in real usage)
 	_, err := patternToRegex(pattern)
 	if err != nil {
 		b.Fatalf("Failed to compile pattern: %v", err)
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = stripWildcardPrefix(path, pattern)
