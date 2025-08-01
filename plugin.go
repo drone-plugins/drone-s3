@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"mime"
 	"os"
@@ -84,7 +85,7 @@ type Plugin struct {
 	Source string
 	Target string
 
-	// Strip the prefix from the target path
+	// Strip the prefix from the target path (supports wildcards)
 	StripPrefix string
 
 	// Exclude files matching this pattern.
@@ -136,6 +137,17 @@ func (p *Plugin) Exec() error {
 			"error": err,
 		}).Error("Could not match files")
 		return err
+	}
+
+	// Validate strip prefix pattern if it contains wildcards
+	if p.StripPrefix != "" {
+		if err := validateStripPrefix(p.StripPrefix); err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+				"pattern": p.StripPrefix,
+			}).Error("Invalid strip_prefix pattern")
+			return err
+		}
 	}
 
 	for _, match := range matches {
@@ -305,7 +317,19 @@ func assumeRole(roleArn, roleSessionName, externalID string) *credentials.Creden
 // resolveKey is a helper function that returns s3 object key where file present at srcPath is uploaded to.
 // srcPath is assumed to be in forward slash format
 func resolveKey(target, srcPath, stripPrefix string) string {
-	key := filepath.Join(target, strings.TrimPrefix(srcPath, filepath.ToSlash(stripPrefix)))
+	// Use wildcard-aware prefix stripping
+	stripped, err := stripWildcardPrefix(srcPath, stripPrefix)
+	if err != nil {
+		// Log error but continue with original path
+		log.WithFields(log.Fields{
+			"error": err,
+			"path": srcPath,
+			"pattern": stripPrefix,
+		}).Warning("Failed to strip prefix, using original path")
+		stripped = srcPath
+	}
+	
+	key := filepath.Join(target, stripped)
 	key = filepath.ToSlash(key)
 	if !strings.HasPrefix(key, "/") {
 		key = "/" + key
@@ -507,4 +531,100 @@ func assumeRoleWithWebIdentity(sess *session.Session, roleArn, roleSessionName, 
 		log.Fatalf("failed to assume role with web identity: %v", err)
 	}
 	return credentials.NewStaticCredentials(*result.Credentials.AccessKeyId, *result.Credentials.SecretAccessKey, *result.Credentials.SessionToken), nil
+}
+
+// validateStripPrefix validates a strip prefix pattern with wildcards
+func validateStripPrefix(pattern string) error {
+	// Pattern must start with /
+	if !strings.HasPrefix(pattern, "/") {
+		return fmt.Errorf("strip_prefix must start with '/'")
+	}
+	
+	// Check length limit
+	if len(pattern) > 256 {
+		return fmt.Errorf("strip_prefix pattern too long (max 256 characters)")
+	}
+	
+	// Count wildcards
+	wildcardCount := strings.Count(pattern, "*") + strings.Count(pattern, "?")
+	if wildcardCount > 20 {
+		return fmt.Errorf("strip_prefix pattern contains too many wildcards (max 20)")
+	}
+	
+	// Check for empty segments
+	if strings.Contains(pattern, "//") {
+		return fmt.Errorf("strip_prefix pattern contains empty segment '//'")
+	}
+	
+	// Check for invalid ** usage (must be standalone segment)
+	parts := strings.Split(pattern, "/")
+	for _, part := range parts {
+		if strings.Contains(part, "**") && part != "**" {
+			return fmt.Errorf("'**' must be a standalone directory segment")
+		}
+	}
+	
+	return nil
+}
+
+// patternToRegex converts shell-style wildcards to regex
+func patternToRegex(pattern string) (*regexp.Regexp, error) {
+	// Escape special regex characters except our wildcards
+	escaped := regexp.QuoteMeta(pattern)
+	
+	// Replace escaped wildcards with regex equivalents  
+	// Order matters: ** must be replaced before *
+	escaped = strings.ReplaceAll(escaped, `\*\*`, "(.+)")      // ** -> (.+) any depth
+	escaped = strings.ReplaceAll(escaped, `\*`, "([^/]+)")      // * -> ([^/]+) one segment  
+	escaped = strings.ReplaceAll(escaped, `\?`, "([^/])")       // ? -> ([^/]) one character
+	
+	// Anchor at start
+	escaped = "^" + escaped
+	
+	return regexp.Compile(escaped)
+}
+
+// stripWildcardPrefix strips prefix using wildcard pattern matching
+func stripWildcardPrefix(path, pattern string) (string, error) {
+	if pattern == "" {
+		return path, nil
+	}
+	
+	// Normalize paths
+	path = filepath.ToSlash(path)
+	pattern = filepath.ToSlash(pattern)
+	
+	// Handle literal prefix (no wildcards) 
+	if !strings.ContainsAny(pattern, "*?") {
+		stripped := strings.TrimPrefix(path, pattern)
+		// Validate result for literal prefix
+		if stripped == "" || stripped == "/" || strings.TrimPrefix(stripped, "/") == "" {
+			return path, fmt.Errorf("strip_prefix removes entire path for '%s'", filepath.Base(path))
+		}
+		return stripped, nil
+	}
+	
+	// Convert pattern to regex
+	re, err := patternToRegex(pattern)
+	if err != nil {
+		return path, fmt.Errorf("invalid pattern: %v", err)
+	}
+	
+	// Find matches
+	matches := re.FindStringSubmatch(path)
+	if len(matches) == 0 {
+		// No match, return path unchanged
+		return path, nil
+	}
+	
+	// Calculate what to strip (the full match)
+	fullMatch := matches[0]
+	stripped := strings.TrimPrefix(path, fullMatch)
+	
+	// Validate result
+	if stripped == "" || stripped == "/" || strings.TrimPrefix(stripped, "/") == "" {
+		return path, fmt.Errorf("strip_prefix removes entire path for '%s'", filepath.Base(path))
+	}
+	
+	return stripped, nil
 }

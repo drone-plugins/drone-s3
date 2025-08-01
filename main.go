@@ -86,7 +86,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "strip-prefix",
-			Usage:  "used to add or remove a prefix from the source/target path",
+			Usage:  "prefix to strip from source path (supports wildcards: *, **, ?)",
 			EnvVar: "PLUGIN_STRIP_PREFIX",
 		},
 		cli.StringSliceFlag{
