@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -138,8 +139,8 @@ func TestPatternToRegex(t *testing.T) {
 	}{
 		{
 			name:     "Single wildcard matches one segment",
-			pattern:  "/harness/artifacts/*/",
-			testPath: "/harness/artifacts/build123/",
+			pattern:  filepath.ToSlash("/harness/artifacts/*/"),
+			testPath: filepath.ToSlash("/harness/artifacts/build123/"),
 			matches:  true,
 		},
 		{
@@ -302,6 +303,46 @@ func TestWildcardErrorHandling(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ===============================
+// WINDOWS NORMALIZATION TESTS
+// ===============================
+
+func TestWindowsBackslashInputs(t *testing.T) {
+    t.Run("validate single-backslash anchored pattern accepted", func(t *testing.T) {
+        if err := validateStripPrefix(`\harness\artifacts\*/`); err != nil {
+            t.Fatalf("validateStripPrefix backslash pattern unexpected error: %v", err)
+        }
+    })
+
+    t.Run("reject UNC double-backslash pattern (empty segment)", func(t *testing.T) {
+        if err := validateStripPrefix(`\\harness\\artifacts\\*/`); err == nil {
+            t.Fatalf("expected error for UNC-style pattern, got nil")
+        }
+    })
+
+    t.Run("reject drive-letter pattern", func(t *testing.T) {
+        if err := validateStripPrefix(`C:\\harness\\artifacts\\*/`); err == nil {
+            t.Fatalf("expected error for drive-letter pattern, got nil")
+        }
+    })
+}
+
+func TestExecStyleNormalizationWithWindowsPatterns(t *testing.T) {
+    // Ensure Windows-style strip_prefix works on forward-slash paths after normalization
+    patternWin := `\harness\artifacts\*/`
+    if err := validateStripPrefix(patternWin); err != nil {
+        t.Fatalf("validateStripPrefix(%q) error: %v", patternWin, err)
+    }
+    path := "/harness/artifacts/abc123/module/app.zip"
+    stripped, err := stripWildcardPrefix(path, patternWin)
+    if err != nil {
+        t.Fatalf("stripWildcardPrefix error: %v", err)
+    }
+    if want := "module/app.zip"; stripped != want {
+        t.Fatalf("stripped=%q want %q", stripped, want)
+    }
 }
 
 // ===============================
