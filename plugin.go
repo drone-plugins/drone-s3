@@ -227,10 +227,10 @@ func (p *Plugin) Exec() error {
 				removed = rem
 			}
 			log.WithFields(log.Fields{
-				"name":          match,
-				"bucket":        p.Bucket,
-				"target":        target,
-				"strip_pattern": p.StripPrefix,
+				"name":           match,
+				"bucket":         p.Bucket,
+				"target":         target,
+				"strip_pattern":  p.StripPrefix,
 				"removed_prefix": removed,
 			}).Info("Dry-run: would upload")
 			continue
@@ -402,42 +402,42 @@ func resolveSource(sourceDir, source, stripPrefix string) string {
 	// Remove the leading sourceDir from the source path
 	path := strings.TrimPrefix(strings.TrimPrefix(source, sourceDir), "/")
 
-    // Add the specified stripPrefix to the resulting path
-    return stripPrefix + path
+	// Add the specified stripPrefix to the resulting path
+	return stripPrefix + path
 }
 
 // checks if the source path is a dir
 func isDir(source string, matches []string) bool {
-    stat, err := os.Stat(source)
-    if err != nil {
-        return true // should never happen
-    }
-    if stat.IsDir() {
-        count := 0
-        for _, match := range matches {
-            if strings.HasPrefix(match, source) {
-                count++
-            }
-        }
-        if count <= 1 {
-            log.Warnf("Skipping '%s' since it is a directory. Please use correct glob expression if this is unexpected.", source)
-        }
-        return true
-    }
-    return false
+	stat, err := os.Stat(source)
+	if err != nil {
+		return true // should never happen
+	}
+	if stat.IsDir() {
+		count := 0
+		for _, match := range matches {
+			if strings.HasPrefix(match, source) {
+				count++
+			}
+		}
+		if count <= 1 {
+			log.Warnf("Skipping '%s' since it is a directory. Please use correct glob expression if this is unexpected.", source)
+		}
+		return true
+	}
+	return false
 }
 
 // normalizePath converts the path to a forward slash format and trims the prefix.
 func normalizePath(path string) string {
-    return strings.TrimPrefix(filepath.ToSlash(path), "/")
+	return strings.TrimPrefix(filepath.ToSlash(path), "/")
 }
 
 // downloadS3Object downloads a single object from S3
 func (p *Plugin) downloadS3Object(client *s3.S3, sourceDir, key, target string) error {
-    log.WithFields(log.Fields{
-        "bucket": p.Bucket,
-        "key":    key,
-    }).Info("Getting S3 object")
+	log.WithFields(log.Fields{
+		"bucket": p.Bucket,
+		"key":    key,
+	}).Info("Getting S3 object")
 
 	obj, err := client.GetObject(&s3.GetObjectInput{
 		Bucket: &p.Bucket,
@@ -594,18 +594,18 @@ func assumeRoleWithWebIdentity(sess *session.Session, roleArn, roleSessionName, 
 
 // validateStripPrefix validates a strip prefix pattern with wildcards
 func validateStripPrefix(pattern string) error {
-    // Normalize Windows backslashes to forward slashes for validation (OS-independent)
-    pattern = strings.ReplaceAll(pattern, "\\", "/")
+	// Normalize Windows backslashes to forward slashes for validation (OS-independent)
+	pattern = strings.ReplaceAll(pattern, "\\", "/")
 
-    // Pattern must start with /
-    if !strings.HasPrefix(pattern, "/") {
-        return fmt.Errorf("strip_prefix must start with '/'")
-    }
+	// Pattern must start with /
+	if !strings.HasPrefix(pattern, "/") {
+		return fmt.Errorf("strip_prefix must start with '/'")
+	}
 
-    // Reject Windows drive-letter prefixes like C:/...
-    if len(pattern) >= 2 && pattern[1] == ':' {
-        return fmt.Errorf("strip_prefix must be an absolute POSIX-style path (e.g. '/root/...'), drive letters are not supported")
-    }
+	// Reject Windows drive-letter prefixes like C:/...
+	if len(pattern) >= 2 && pattern[1] == ':' {
+		return fmt.Errorf("strip_prefix must be an absolute POSIX-style path (e.g. '/root/...'), drive letters are not supported")
+	}
 
 	// Check length limit
 	if len(pattern) > 256 {
@@ -631,7 +631,7 @@ func validateStripPrefix(pattern string) error {
 		}
 	}
 
-	    return nil
+	return nil
 }
 
 // patternToRegex converts shell-style wildcards to regex
@@ -648,56 +648,56 @@ func patternToRegex(pattern string) (*regexp.Regexp, error) {
 	// Anchor at start
 	escaped = "^" + escaped
 
-	    return regexp.Compile(escaped)
+	return regexp.Compile(escaped)
 }
 
 // stripWildcardPrefixWithRegex strips prefix using wildcard pattern matching, reusing
 // a precompiled regex when provided. It returns the possibly stripped path, whether
 // the pattern matched, and any error if stripping would remove the entire key.
 func stripWildcardPrefixWithRegex(path, pattern string, re *regexp.Regexp) (string, bool, error) {
-    if pattern == "" {
-        return path, false, nil
-    }
+	if pattern == "" {
+		return path, false, nil
+	}
 
-    // Normalize paths to forward slashes (OS-independent)
-    path = strings.ReplaceAll(path, "\\", "/")
-    pattern = strings.ReplaceAll(pattern, "\\", "/")
+	// Normalize paths to forward slashes (OS-independent)
+	path = strings.ReplaceAll(path, "\\", "/")
+	pattern = strings.ReplaceAll(pattern, "\\", "/")
 
-    // Literal prefix (no wildcards)
-    if !strings.ContainsAny(pattern, "*?") {
-        if !strings.HasPrefix(path, pattern) {
-            return path, false, nil
-        }
-        stripped := strings.TrimPrefix(path, pattern)
-        if stripped == "" || stripped == "/" || strings.TrimPrefix(stripped, "/") == "" {
-            return path, true, fmt.Errorf("strip_prefix removes entire path for '%s'", filepath.Base(path))
-        }
-        return stripped, true, nil
-    }
+	// Literal prefix (no wildcards)
+	if !strings.ContainsAny(pattern, "*?") {
+		if !strings.HasPrefix(path, pattern) {
+			return path, false, nil
+		}
+		stripped := strings.TrimPrefix(path, pattern)
+		if stripped == "" || stripped == "/" || strings.TrimPrefix(stripped, "/") == "" {
+			return path, true, fmt.Errorf("strip_prefix removes entire path for '%s'", filepath.Base(path))
+		}
+		return stripped, true, nil
+	}
 
-    // Wildcard pattern
-    var err error
-    if re == nil {
-        re, err = patternToRegex(pattern)
-        if err != nil {
-            return path, false, fmt.Errorf("invalid pattern: %v", err)
-        }
-    }
+	// Wildcard pattern
+	var err error
+	if re == nil {
+		re, err = patternToRegex(pattern)
+		if err != nil {
+			return path, false, fmt.Errorf("invalid pattern: %v", err)
+		}
+	}
 
-    m := re.FindStringSubmatch(path)
-    if len(m) == 0 {
-        return path, false, nil
-    }
-    full := m[0]
-    stripped := strings.TrimPrefix(path, full)
-    if stripped == "" || stripped == "/" || strings.TrimPrefix(stripped, "/") == "" {
-        return path, true, fmt.Errorf("strip_prefix removes entire path for '%s'", filepath.Base(path))
-    }
-    return stripped, true, nil
+	m := re.FindStringSubmatch(path)
+	if len(m) == 0 {
+		return path, false, nil
+	}
+	full := m[0]
+	stripped := strings.TrimPrefix(path, full)
+	if stripped == "" || stripped == "/" || strings.TrimPrefix(stripped, "/") == "" {
+		return path, true, fmt.Errorf("strip_prefix removes entire path for '%s'", filepath.Base(path))
+	}
+	return stripped, true, nil
 }
 
 // stripWildcardPrefix strips prefix using wildcard pattern matching
 func stripWildcardPrefix(path, pattern string) (string, error) {
-    stripped, _, err := stripWildcardPrefixWithRegex(path, pattern, nil)
-    return stripped, err
+	stripped, _, err := stripWildcardPrefixWithRegex(path, pattern, nil)
+	return stripped, err
 }
