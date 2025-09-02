@@ -61,47 +61,6 @@ docker run --rm \
   plugins/s3 --dry-run
 ```
 
-### Wildcard strip_prefix
-
-You can strip dynamic, runtime-generated directory prefixes from S3 keys using shell-style wildcards in `strip_prefix`.
-
-Supported patterns:
-
-- `*` matches exactly one path segment (no `/`).
-- `**` matches any depth (including zero segments).
-- `?` matches exactly one character (no `/`).
-
-The pattern is anchored at the start of the path. Use `/` to delimit directory boundaries. We recommend ending directory patterns with a trailing `/` to strip whole directory segments.
-
-Examples:
-
-- Pattern: `/harness/artifacts/*/`
-  - Path: `/harness/artifacts/build-123/module/app.zip`
-  - Result key suffix: `module/app.zip`
-
-- Pattern: `/harness/artifacts/**/`
-  - Path: `/harness/artifacts/build-123/deep/nested/file.zip`
-  - Result key suffix: `file.zip`
-
-- Pattern: `/harness/artifacts/*/services/`
-  - Path: `/harness/artifacts/build-123/services/auth/auth.zip`
-  - Result key suffix: `auth/auth.zip`
-
-Trailing slash semantics:
-
-- A trailing `/` indicates you are stripping up to a directory boundary.
-- Without a trailing `/`, the match may end mid-segment. For directory prefix stripping, prefer a trailing `/`.
-
-Windows notes:
-
-- `strip_prefix` must start with `/`. Backslashes are accepted and normalized to `/` internally (e.g. `\\harness\\artifacts\\*/` is allowed).
-- Windows drive letters like `C:\\...` are not supported and will be rejected.
-
-Dry-run logging:
-
-- With `--dry-run` or `PLUGIN_DRY_RUN=true`, the plugin logs what would be uploaded.
-- Fields include `name` (source), `target` (S3 key), `strip_pattern`, and `removed_prefix` (the portion stripped from the path when the pattern matches).
-
 * For Download
 ```
 docker run --rm \
