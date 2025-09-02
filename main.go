@@ -86,7 +86,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "strip-prefix",
-			Usage:  "prefix to strip from source path (supports wildcards: *, **, ?)",
+			Usage:  "used to add or remove a prefix from the source/target path",
 			EnvVar: "PLUGIN_STRIP_PREFIX",
 		},
 		cli.StringSliceFlag{
@@ -163,6 +163,7 @@ func run(c *cli.Context) error {
 		_ = godotenv.Load(c.String("env-file"))
 	}
 
+
 	plugin := Plugin{
 		Endpoint:              c.String("endpoint"),
 		Key:                   c.String("access-key"),
@@ -192,3 +193,4 @@ func run(c *cli.Context) error {
 
 	return plugin.Exec()
 }
+
