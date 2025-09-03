@@ -151,6 +151,11 @@ func main() {
 			Usage:  "OIDC token for assuming role via web identity",
 			EnvVar: "PLUGIN_OIDC_TOKEN_ID",
 		},
+		cli.IntFlag{
+			Name:   "parallel-uploads",
+			Usage:  "number of parallel uploads",
+			EnvVar: "PLUGIN_PARALLEL_UPLOADS",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -162,7 +167,6 @@ func run(c *cli.Context) error {
 	if c.String("env-file") != "" {
 		_ = godotenv.Load(c.String("env-file"))
 	}
-
 
 	plugin := Plugin{
 		Endpoint:              c.String("endpoint"),
@@ -189,8 +193,8 @@ func run(c *cli.Context) error {
 		DryRun:                c.Bool("dry-run"),
 		ExternalID:            c.String("external-id"),
 		IdToken:               c.String("oidc-token-id"),
+		ParallelUploads:       c.Int("parallel-uploads"),
 	}
 
 	return plugin.Exec()
 }
-

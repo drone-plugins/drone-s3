@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -102,6 +103,94 @@ type Plugin struct {
 
 	// set OIDC ID Token to retrieve temporary credentials
 	IdToken string
+
+	ParallelUploads int
+}
+
+func (p *Plugin) uploadFile(client *s3.S3, match string) error {
+
+	target := resolveKey(p.Target, match, p.StripPrefix)
+
+	contentType := matchExtension(match, p.ContentType)
+	contentEncoding := matchExtension(match, p.ContentEncoding)
+	cacheControl := matchExtension(match, p.CacheControl)
+
+	if contentType == "" {
+		contentType = mime.TypeByExtension(filepath.Ext(match))
+
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+	}
+
+	// log file for debug purposes.
+	log.WithFields(log.Fields{
+		"name":   match,
+		"bucket": p.Bucket,
+		"target": target,
+	}).Info("Uploading file")
+
+	// when executing a dry-run we exit because we don't actually want to
+	// upload the file to S3.
+	if p.DryRun {
+		return nil
+	}
+
+	f, err := os.Open(match)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+			"file":  match,
+		}).Error("Problem opening file")
+		return err
+	}
+	defer f.Close()
+
+	putObjectInput := &s3.PutObjectInput{
+		Body:   f,
+		Bucket: &(p.Bucket),
+		Key:    &target,
+	}
+
+	if contentType != "" {
+		putObjectInput.ContentType = aws.String(contentType)
+	}
+
+	if contentEncoding != "" {
+		putObjectInput.ContentEncoding = aws.String(contentEncoding)
+	}
+
+	if cacheControl != "" {
+		putObjectInput.CacheControl = aws.String(cacheControl)
+	}
+
+	if p.Encryption != "" {
+		putObjectInput.ServerSideEncryption = aws.String(p.Encryption)
+	}
+
+	if p.StorageClass != "" {
+		putObjectInput.StorageClass = &(p.StorageClass)
+	}
+
+	if p.Access != "" {
+		putObjectInput.ACL = &(p.Access)
+	}
+
+	_, err = client.PutObject(putObjectInput)
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"name":   match,
+			"bucket": p.Bucket,
+			"target": target,
+			"error":  err,
+		}).Error("Could not upload file")
+
+		return err
+	}
+	f.Close()
+
+	return nil
 }
 
 // Exec runs the plugin
@@ -137,96 +226,35 @@ func (p *Plugin) Exec() error {
 		}).Error("Could not match files")
 		return err
 	}
+	sem := make(chan bool, max(1, p.ParallelUploads))
+	errChan := make(chan error)
+	var wg sync.WaitGroup
 
 	for _, match := range matches {
+		match := match
 		// skip directories
 		if isDir(match, matches) {
 			continue
 		}
+		select {
+		case err := <-errChan:
+			return err
+		case sem <- true:
+		}
 
-		target := resolveKey(p.Target, match, p.StripPrefix)
-
-		contentType := matchExtension(match, p.ContentType)
-		contentEncoding := matchExtension(match, p.ContentEncoding)
-		cacheControl := matchExtension(match, p.CacheControl)
-
-		if contentType == "" {
-			contentType = mime.TypeByExtension(filepath.Ext(match))
-
-			if contentType == "" {
-				contentType = "application/octet-stream"
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }() // release
+			err := p.uploadFile(client, match)
+			if err != nil {
+				errChan <- err
 			}
-		}
-
-		// log file for debug purposes.
-		log.WithFields(log.Fields{
-			"name":   match,
-			"bucket": p.Bucket,
-			"target": target,
-		}).Info("Uploading file")
-
-		// when executing a dry-run we exit because we don't actually want to
-		// upload the file to S3.
-		if p.DryRun {
-			continue
-		}
-
-		f, err := os.Open(match)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-				"file":  match,
-			}).Error("Problem opening file")
-			return err
-		}
-		defer f.Close()
-
-		putObjectInput := &s3.PutObjectInput{
-			Body:   f,
-			Bucket: &(p.Bucket),
-			Key:    &target,
-		}
-
-		if contentType != "" {
-			putObjectInput.ContentType = aws.String(contentType)
-		}
-
-		if contentEncoding != "" {
-			putObjectInput.ContentEncoding = aws.String(contentEncoding)
-		}
-
-		if cacheControl != "" {
-			putObjectInput.CacheControl = aws.String(cacheControl)
-		}
-
-		if p.Encryption != "" {
-			putObjectInput.ServerSideEncryption = aws.String(p.Encryption)
-		}
-
-		if p.StorageClass != "" {
-			putObjectInput.StorageClass = &(p.StorageClass)
-		}
-
-		if p.Access != "" {
-			putObjectInput.ACL = &(p.Access)
-		}
-
-		_, err = client.PutObject(putObjectInput)
-
-		if err != nil {
-			log.WithFields(log.Fields{
-				"name":   match,
-				"bucket": p.Bucket,
-				"target": target,
-				"error":  err,
-			}).Error("Could not upload file")
-
-			return err
-		}
-		f.Close()
+		}()
 	}
-
+	wg.Wait()
 	return nil
+
 }
 
 // matches is a helper function that returns a list of all files matching the
