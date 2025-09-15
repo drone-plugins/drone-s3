@@ -141,7 +141,7 @@ func (p *Plugin) Exec() error {
 
 	// Validate strip prefix pattern and precompile regex once
 	normalizedStrip := strings.ReplaceAll(p.StripPrefix, "\\", "/")
-	if p.StripPrefix != "" {
+	if p.StripPrefix != "" && strings.HasPrefix(normalizedStrip, "/") {
 		if err := validateStripPrefix(p.StripPrefix); err != nil {
 			log.WithFields(log.Fields{
 				"error":   err,
@@ -152,7 +152,7 @@ func (p *Plugin) Exec() error {
 	}
 
 	var compiled *regexp.Regexp
-	if normalizedStrip != "" && strings.ContainsAny(normalizedStrip, "*?") {
+	if normalizedStrip != "" && strings.HasPrefix(normalizedStrip, "/") && strings.ContainsAny(normalizedStrip, "*?") {
 		var err error
 		compiled, err = patternToRegex(normalizedStrip)
 		if err != nil {
@@ -172,30 +172,49 @@ func (p *Plugin) Exec() error {
 			continue
 		}
 
-		// Preview stripping (using precompiled regex when available)
+		// Preview stripping (wildcard for absolute patterns, literal for relative patterns)
 		stripped := match
 		matched := false
 		if normalizedStrip != "" {
-			var err error
-			stripped, matched, err = stripWildcardPrefixWithRegex(match, normalizedStrip, compiled)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"error":   err,
-					"path":    match,
-					"pattern": p.StripPrefix,
-				}).Warn("Failed to strip prefix, using original path")
-				stripped = match
+			if strings.HasPrefix(normalizedStrip, "/") {
+				var err error
+				stripped, matched, err = stripWildcardPrefixWithRegex(match, normalizedStrip, compiled)
+				if err != nil {
+					log.WithFields(log.Fields{
+						"error":   err,
+						"path":    match,
+						"pattern": p.StripPrefix,
+					}).Warn("Failed to strip prefix, using original path")
+					stripped = match
+				}
+			} else {
+				// Backward-compat: literal TrimPrefix for relative strip_prefix (no leading '/')
+				m := filepath.ToSlash(match)
+				trimmed := strings.TrimPrefix(m, normalizedStrip)
+				if trimmed != m {
+					matched = true
+					stripped = trimmed
+				} else {
+					stripped = match
+				}
 			}
 		}
 		if matched {
 			anyMatched = true
 		}
 
-		// Build final key (ensure relative component for join)
-		rel := strings.TrimPrefix(filepath.ToSlash(stripped), "/")
-		target := filepath.ToSlash(filepath.Join(p.Target, rel))
-		if !strings.HasPrefix(target, "/") {
-			target = "/" + target
+		// Build final key
+		var target string
+		if normalizedStrip != "" && !strings.HasPrefix(normalizedStrip, "/") {
+			// Relative strip_prefix: use master resolveKey behavior
+			target = resolveKey(p.Target, filepath.ToSlash(match), p.StripPrefix)
+		} else {
+			// Absolute strip_prefix (wildcards): join stripped suffix under target
+			rel := strings.TrimPrefix(filepath.ToSlash(stripped), "/")
+			target = filepath.ToSlash(filepath.Join(p.Target, rel))
+			if !strings.HasPrefix(target, "/") {
+				target = "/" + target
+			}
 		}
 
 		contentType := matchExtension(match, p.ContentType)
@@ -376,21 +395,7 @@ func assumeRole(roleArn, roleSessionName, externalID string) *credentials.Creden
 // resolveKey is a helper function that returns s3 object key where file present at srcPath is uploaded to.
 // srcPath is assumed to be in forward slash format
 func resolveKey(target, srcPath, stripPrefix string) string {
-	// Use wildcard-aware prefix stripping
-	stripped, err := stripWildcardPrefix(srcPath, stripPrefix)
-	if err != nil {
-		// Log error but continue with original path
-		log.WithFields(log.Fields{
-			"error":   err,
-			"path":    srcPath,
-			"pattern": stripPrefix,
-		}).Warn("Failed to strip prefix, using original path")
-		stripped = srcPath
-	}
-	// Ensure we never drop the target when the stripped path is absolute.
-	// Always join with a relative path component.
-	stripped = strings.TrimPrefix(stripped, "/")
-	key := filepath.Join(target, stripped)
+	key := filepath.Join(target, strings.TrimPrefix(srcPath, filepath.ToSlash(stripPrefix)))
 	key = filepath.ToSlash(key)
 	if !strings.HasPrefix(key, "/") {
 		key = "/" + key

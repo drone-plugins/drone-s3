@@ -185,10 +185,10 @@ func TestPatternToRegex(t *testing.T) {
 }
 
 // ===============================
-// INTEGRATION TESTS - ResolveKey
+// INTEGRATION TESTS - Wildcard build (absolute patterns)
 // ===============================
 
-func TestResolveKeyWithWildcards(t *testing.T) {
+func TestBuildKeyWithWildcards(t *testing.T) {
 	tests := []struct {
 		name        string
 		target      string
@@ -230,6 +230,67 @@ func TestResolveKeyWithWildcards(t *testing.T) {
 			srcPath:     "/different/location/file.zip",
 			stripPrefix: "/harness/artifacts/*/",
 			expected:    "/fallback/different/location/file.zip",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Use wildcard/literal strip for absolute patterns, then join under target
+			suffix, err := stripWildcardPrefix(tt.srcPath, tt.stripPrefix)
+			if err != nil {
+				t.Fatalf("stripWildcardPrefix(%q, %q) error: %v", tt.srcPath, tt.stripPrefix, err)
+			}
+			rel := strings.TrimPrefix(filepath.ToSlash(suffix), "/")
+			key := filepath.ToSlash(filepath.Join(tt.target, rel))
+			if !strings.HasPrefix(key, "/") {
+				key = "/" + key
+			}
+			if key != tt.expected {
+				t.Errorf("built key = %q, want %q", key, tt.expected)
+			}
+		})
+	}
+}
+
+// ===============================
+// INTEGRATION TESTS - ResolveKey (backward compat literal behavior)
+// ===============================
+
+func TestResolveKey_BackCompat(t *testing.T) {
+	tests := []struct {
+		name        string
+		target      string
+		srcPath     string
+		stripPrefix string
+		expected    string
+	}{
+		{
+			name:        "Relative strip_prefix trims relative path",
+			target:      "hello",
+			srcPath:     "foo/bar.zip",
+			stripPrefix: "foo/",
+			expected:    "/hello/bar.zip",
+		},
+		{
+			name:        "Relative strip_prefix does not trim absolute path",
+			target:      "hello",
+			srcPath:     "/foo/bar.zip",
+			stripPrefix: "foo/",
+			expected:    "/hello/foo/bar.zip",
+		},
+		{
+			name:        "Absolute literal prefix trims absolute path",
+			target:      "hello",
+			srcPath:     "/foo/bar.zip",
+			stripPrefix: "/foo/",
+			expected:    "/hello/bar.zip",
+		},
+		{
+			name:        "No strip_prefix provided",
+			target:      "/hello",
+			srcPath:     "/foo/bar.zip",
+			stripPrefix: "",
+			expected:    "/hello/foo/bar.zip",
 		},
 	}
 
