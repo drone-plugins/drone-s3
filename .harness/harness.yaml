@@ -149,7 +149,7 @@ pipeline:
                       type: Run
                       name: Build Binary
                       spec:
-                        connectorRef: account.harnessImage
+                        connectorRef: Plugins_Docker_Hub_Connector
                         image: golang:1.22.7
                         shell: Sh
                         command: |-
