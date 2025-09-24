@@ -149,7 +149,7 @@ pipeline:
                       type: Run
                       name: Build Binary
                       spec:
-                        connectorRef: Plugins_Docker_Hub_Connector
+                        connectorRef: devanshdocker
                         image: golang:1.22.7
                         shell: Sh
                         command: |-
