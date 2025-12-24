@@ -169,7 +169,7 @@ func TestIsDir(t *testing.T) {
 			source:      testDir,
 			matches:     []string{testDir},
 			expectError: true,
-			errorContains: "directory specified without glob pattern",
+			errorContains: "specified without glob pattern",
 		},
 		{
 			name:        "directory with glob pattern should not error",
