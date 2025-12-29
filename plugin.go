@@ -21,6 +21,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var errSkip = fmt.Errorf("skip")
+
 // Plugin defines the S3 plugin parameters.
 type Plugin struct {
 	Endpoint              string
@@ -169,6 +171,9 @@ func (p *Plugin) Exec() error {
 	for _, match := range matches {
 		// check directories and fail if directory without glob pattern
 		if err := isDir(match, matches); err != nil {
+			if err == errSkip {
+				continue
+			}
 			log.WithFields(log.Fields{
 				"error": err,
 				"match": match,
@@ -419,7 +424,7 @@ func resolveSource(sourceDir, source, stripPrefix string) string {
 func isDir(source string, matches []string) error {
 	stat, err := os.Stat(source)
 	if err != nil {
-		return nil // file doesn't exist, not a directory issue
+		return errSkip // skip non-existent files
 	}
 	if stat.IsDir() {
 		count := 0
@@ -431,6 +436,7 @@ func isDir(source string, matches []string) error {
 		if count <= 1 {
 			return fmt.Errorf("directory '%s' specified without glob pattern. Use a pattern like '%s/*' or '%s/**' to upload directory contents", source, source, source)
 		}
+		return errSkip // skip directory but allow its children to be processed
 	}
 	return nil
 }

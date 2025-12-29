@@ -156,6 +156,7 @@ func TestIsDir(t *testing.T) {
 		source      string
 		matches     []string
 		expectError bool
+		expectSkip  bool
 		errorContains string
 	}{
 		{
@@ -163,25 +164,29 @@ func TestIsDir(t *testing.T) {
 			source:      testFile,
 			matches:     []string{testFile},
 			expectError: false,
+			expectSkip:  false,
 		},
 		{
 			name:        "directory without glob should error", 
 			source:      testDir,
 			matches:     []string{testDir},
 			expectError: true,
+			expectSkip:  false,
 			errorContains: "specified without glob pattern",
 		},
 		{
-			name:        "directory with glob pattern should not error",
+			name:        "directory with glob pattern should skip",
 			source:      testDir,
 			matches:     []string{testDir + "/file1.txt", testDir + "/file2.txt"},
 			expectError: false,
+			expectSkip:  true,
 		},
 		{
-			name:        "non-existent path should not error",
+			name:        "non-existent path should skip",
 			source:      "/non/existent/path", 
 			matches:     []string{},
 			expectError: false,
+			expectSkip:  true,
 		},
 	}
 
@@ -192,8 +197,14 @@ func TestIsDir(t *testing.T) {
 			if tc.expectError {
 				if err == nil {
 					t.Errorf("Expected error but got none")
+				} else if err == errSkip {
+					t.Errorf("Expected fatal error but got skip error")
 				} else if tc.errorContains != "" && !strings.Contains(err.Error(), tc.errorContains) {
 					t.Errorf("Expected error to contain '%s', but got: %v", tc.errorContains, err)
+				}
+			} else if tc.expectSkip {
+				if err != errSkip {
+					t.Errorf("Expected skip error but got: %v", err)
 				}
 			} else {
 				if err != nil {
