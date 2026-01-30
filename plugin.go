@@ -21,6 +21,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var errSkip = fmt.Errorf("skip")
+
 // Plugin defines the S3 plugin parameters.
 type Plugin struct {
 	Endpoint              string
@@ -167,9 +169,16 @@ func (p *Plugin) Exec() error {
 	anyMatched := false
 
 	for _, match := range matches {
-		// skip directories
-		if isDir(match, matches) {
-			continue
+		// check directories and fail if directory without glob pattern
+		if err := isDir(match, matches); err != nil {
+			if err == errSkip {
+				continue
+			}
+			log.WithFields(log.Fields{
+				"error": err,
+				"match": match,
+			}).Error("Directory specified without glob pattern")
+			return err
 		}
 
 		// Preview stripping (wildcard for absolute patterns, literal for relative patterns)
@@ -411,11 +420,11 @@ func resolveSource(sourceDir, source, stripPrefix string) string {
 	return stripPrefix + path
 }
 
-// checks if the source path is a dir
-func isDir(source string, matches []string) bool {
+// checks if the source path is a dir and returns error if directory found without glob patterns
+func isDir(source string, matches []string) error {
 	stat, err := os.Stat(source)
 	if err != nil {
-		return true // should never happen
+		return errSkip // skip non-existent files
 	}
 	if stat.IsDir() {
 		count := 0
@@ -425,11 +434,11 @@ func isDir(source string, matches []string) bool {
 			}
 		}
 		if count <= 1 {
-			log.Warnf("Skipping '%s' since it is a directory. Please use correct glob expression if this is unexpected.", source)
+			return fmt.Errorf("directory '%s' specified without glob pattern. Use a pattern like '%s/*' or '%s/**' to upload directory contents", source, source, source)
 		}
-		return true
+		return errSkip // skip directory but allow its children to be processed
 	}
-	return false
+	return nil
 }
 
 // normalizePath converts the path to a forward slash format and trims the prefix.
