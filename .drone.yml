@@ -134,7 +134,7 @@ pool:
 
 steps:
   - name: environment
-    image: golang:1.25.7
+    image: golang:1.23.0
     pull: always
     environment:
       CGO_ENABLED: "0"
@@ -142,7 +142,7 @@ steps:
       - go version
       - go env
   - name: build
-    image: golang:1.25.7
+    image: golang:1.23.0
     environment:
       CGO_ENABLED: "0"
     commands:
@@ -184,7 +184,7 @@ pool:
 
 steps:
   - name: environment
-    image: golang:1.25.7
+    image: golang:1.23.0
     pull: always
     environment:
       CGO_ENABLED: "0"
@@ -192,7 +192,7 @@ steps:
       - go version
       - go env
   - name: build
-    image: golang:1.25.7
+    image: golang:1.23.0
     environment:
       CGO_ENABLED: "0"
     commands:
