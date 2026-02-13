@@ -39,7 +39,7 @@ pipeline:
                     image: golang:1.25.7
                     shell: Sh
                     command: |-
-                      go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+                      go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
                       golangci-lint version
                       golangci-lint run --timeout=300s
               - step:
