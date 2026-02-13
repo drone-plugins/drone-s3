@@ -5,7 +5,7 @@ go 1.25.7
 require (
 	github.com/aws/aws-sdk-go v1.48.0
 	github.com/joho/godotenv v1.4.0
-	github.com/mattn/go-zglob v0.0.4
+	github.com/mattn/go-zglob v0.0.6
 	github.com/sirupsen/logrus v1.9.3
 	github.com/urfave/cli v1.22.10
 )
