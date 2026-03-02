@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"mime"
@@ -8,14 +9,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/mattn/go-zglob"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -109,6 +110,8 @@ type Plugin struct {
 
 // Exec runs the plugin
 func (p *Plugin) Exec() error {
+	ctx := context.Background()
+
 	if p.Download {
 		p.Source = normalizePath(p.Source)
 		p.Target = normalizePath(p.Target)
@@ -117,13 +120,13 @@ func (p *Plugin) Exec() error {
 	}
 
 	// create the client
-	client := p.createS3Client()
+	client := p.createS3Client(ctx)
 
 	// If in download mode, call the downloadS3Objects method
 	if p.Download {
 		sourceDir := normalizePath(p.Source)
 
-		return p.downloadS3Objects(client, sourceDir)
+		return p.downloadS3Objects(ctx, client, sourceDir)
 	}
 
 	// find the bucket
@@ -276,8 +279,8 @@ func (p *Plugin) Exec() error {
 
 		putObjectInput := &s3.PutObjectInput{
 			Body:   f,
-			Bucket: &(p.Bucket),
-			Key:    &target,
+			Bucket: aws.String(p.Bucket),
+			Key:    aws.String(target),
 		}
 
 		if contentType != "" {
@@ -293,18 +296,18 @@ func (p *Plugin) Exec() error {
 		}
 
 		if p.Encryption != "" {
-			putObjectInput.ServerSideEncryption = aws.String(p.Encryption)
+			putObjectInput.ServerSideEncryption = s3Types.ServerSideEncryption(p.Encryption)
 		}
 
 		if p.StorageClass != "" {
-			putObjectInput.StorageClass = &(p.StorageClass)
+			putObjectInput.StorageClass = s3Types.StorageClass(p.StorageClass)
 		}
 
 		if p.Access != "" {
-			putObjectInput.ACL = &(p.Access)
+			putObjectInput.ACL = s3Types.ObjectCannedACL(p.Access)
 		}
 
-		_, err = client.PutObject(putObjectInput)
+		_, err = client.PutObject(ctx, putObjectInput)
 
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -380,25 +383,17 @@ func matchExtension(match string, stringMap map[string]string) string {
 	return ""
 }
 
-func assumeRole(roleArn, roleSessionName, externalID string) *credentials.Credentials {
+func assumeRole(ctx context.Context, cfg aws.Config, roleArn, roleSessionName, externalID string) aws.CredentialsProvider {
+	stsClient := sts.NewFromConfig(cfg)
 
-	sess, _ := session.NewSession()
-	client := sts.New(sess)
-	duration := time.Hour * 1
-	stsProvider := &stscreds.AssumeRoleProvider{
-		Client:          client,
-		Duration:        duration,
-		RoleARN:         roleArn,
-		RoleSessionName: roleSessionName,
+	opts := func(o *stscreds.AssumeRoleOptions) {
+		o.RoleSessionName = roleSessionName
+		if externalID != "" {
+			o.ExternalID = aws.String(externalID)
+		}
 	}
 
-	if externalID != "" {
-		stsProvider.ExternalID = &externalID
-	}
-
-	creds := credentials.NewCredentials(stsProvider)
-
-	return creds
+	return stscreds.NewAssumeRoleProvider(stsClient, roleArn, opts)
 }
 
 // resolveKey is a helper function that returns s3 object key where file present at srcPath is uploaded to.
@@ -447,15 +442,15 @@ func normalizePath(path string) string {
 }
 
 // downloadS3Object downloads a single object from S3
-func (p *Plugin) downloadS3Object(client *s3.S3, sourceDir, key, target string) error {
+func (p *Plugin) downloadS3Object(ctx context.Context, client *s3.Client, sourceDir, key, target string) error {
 	log.WithFields(log.Fields{
 		"bucket": p.Bucket,
 		"key":    key,
 	}).Info("Getting S3 object")
 
-	obj, err := client.GetObject(&s3.GetObjectInput{
-		Bucket: &p.Bucket,
-		Key:    &key,
+	obj, err := client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(p.Bucket),
+		Key:    aws.String(key),
 	})
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -501,15 +496,15 @@ func (p *Plugin) downloadS3Object(client *s3.S3, sourceDir, key, target string) 
 }
 
 // downloadS3Objects downloads all objects in the specified S3 bucket path
-func (p *Plugin) downloadS3Objects(client *s3.S3, sourceDir string) error {
+func (p *Plugin) downloadS3Objects(ctx context.Context, client *s3.Client, sourceDir string) error {
 	log.WithFields(log.Fields{
 		"bucket": p.Bucket,
 		"dir":    sourceDir,
 	}).Info("Listing S3 directory")
 
-	list, err := client.ListObjectsV2(&s3.ListObjectsV2Input{
-		Bucket: &p.Bucket,
-		Prefix: &sourceDir,
+	list, err := client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+		Bucket: aws.String(p.Bucket),
+		Prefix: aws.String(sourceDir),
 	})
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -526,7 +521,7 @@ func (p *Plugin) downloadS3Objects(client *s3.S3, sourceDir string) error {
 		// and appending the stripPrefix.
 		target := resolveSource(sourceDir, *item.Key, p.StripPrefix)
 
-		if err := p.downloadS3Object(client, sourceDir, *item.Key, target); err != nil {
+		if err := p.downloadS3Object(ctx, client, sourceDir, *item.Key, target); err != nil {
 			return err
 		}
 	}
@@ -535,75 +530,79 @@ func (p *Plugin) downloadS3Objects(client *s3.S3, sourceDir string) error {
 }
 
 // createS3Client creates and returns an S3 client based on the plugin configuration
-func (p *Plugin) createS3Client() *s3.S3 {
+func (p *Plugin) createS3Client(ctx context.Context) *s3.Client {
+	// Build config options
+	var optFns []func(*config.LoadOptions) error
 
-	conf := &aws.Config{
-		Region:           aws.String(p.Region),
-		Endpoint:         &p.Endpoint,
-		DisableSSL:       aws.Bool(strings.HasPrefix(p.Endpoint, "http://")),
-		S3ForcePathStyle: aws.Bool(p.PathStyle),
-	}
+	optFns = append(optFns, config.WithRegion(p.Region))
 
-	// Create initial session
-	sess, err := session.NewSession(conf)
+	// Load base config
+	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
 	if err != nil {
-		log.Fatalf("failed to create AWS session: %v", err)
+		log.Fatalf("failed to load AWS config: %v", err)
 	}
 
+	// Set up credentials
 	if p.Key != "" && p.Secret != "" {
-		conf.Credentials = credentials.NewStaticCredentials(p.Key, p.Secret, "")
+		cfg.Credentials = credentials.NewStaticCredentialsProvider(p.Key, p.Secret, "")
 	} else if p.IdToken != "" && p.AssumeRole != "" {
-		creds, err := assumeRoleWithWebIdentity(sess, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken)
+		creds, err := assumeRoleWithWebIdentity(ctx, cfg, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken)
 		if err != nil {
 			log.Fatalf("failed to assume role with web identity: %v", err)
 		}
-		conf.Credentials = creds
+		cfg.Credentials = creds
 	} else if p.AssumeRole != "" {
-		conf.Credentials = assumeRole(p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
+		cfg.Credentials = assumeRole(ctx, cfg, p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID)
 	} else {
 		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
 	}
 
-	// Create session with primary credentials
-	sess, err = session.NewSession(conf)
-	if err != nil {
-		log.Fatalf("failed to create AWS session: %v", err)
+	// Build S3 client options
+	s3Opts := func(o *s3.Options) {
+		if p.Endpoint != "" {
+			o.BaseEndpoint = aws.String(p.Endpoint)
+		}
+		o.UsePathStyle = p.PathStyle
 	}
 
-	// Initialize client with the session
-	client := s3.New(sess)
+	// Create S3 client
+	client := s3.NewFromConfig(cfg, s3Opts)
 
 	// Handle secondary role assumption if UserRoleArn is provided
 	if len(p.UserRoleArn) > 0 {
 		log.WithField("UserRoleArn", p.UserRoleArn).Info("Using user role ARN")
 
-		// Create credentials using the existing session for role assumption
-		// by assuming the UserRoleArn (with ExternalID when provided)
-		creds := stscreds.NewCredentials(sess, p.UserRoleArn, func(provider *stscreds.AssumeRoleProvider) {
+		stsClient := sts.NewFromConfig(cfg)
+		creds := stscreds.NewAssumeRoleProvider(stsClient, p.UserRoleArn, func(o *stscreds.AssumeRoleOptions) {
 			if p.UserRoleExternalID != "" {
-				provider.ExternalID = aws.String(p.UserRoleExternalID)
+				o.ExternalID = aws.String(p.UserRoleExternalID)
 			}
 		})
 
-		// Create new client with same config but updated credentials
-		client = s3.New(sess, &aws.Config{Credentials: creds})
+		cfg.Credentials = creds
+		client = s3.NewFromConfig(cfg, s3Opts)
 	}
 
 	return client
 }
 
-func assumeRoleWithWebIdentity(sess *session.Session, roleArn, roleSessionName, idToken string) (*credentials.Credentials, error) {
-	svc := sts.New(sess)
+func assumeRoleWithWebIdentity(ctx context.Context, cfg aws.Config, roleArn, roleSessionName, idToken string) (aws.CredentialsProvider, error) {
+	stsClient := sts.NewFromConfig(cfg)
+
 	input := &sts.AssumeRoleWithWebIdentityInput{
 		RoleArn:          aws.String(roleArn),
 		RoleSessionName:  aws.String(roleSessionName),
 		WebIdentityToken: aws.String(idToken),
 	}
-	result, err := svc.AssumeRoleWithWebIdentity(input)
+	result, err := stsClient.AssumeRoleWithWebIdentity(ctx, input)
 	if err != nil {
-		log.Fatalf("failed to assume role with web identity: %v", err)
+		return nil, fmt.Errorf("failed to assume role with web identity: %v", err)
 	}
-	return credentials.NewStaticCredentials(*result.Credentials.AccessKeyId, *result.Credentials.SecretAccessKey, *result.Credentials.SessionToken), nil
+	return credentials.NewStaticCredentialsProvider(
+		*result.Credentials.AccessKeyId,
+		*result.Credentials.SecretAccessKey,
+		*result.Credentials.SessionToken,
+	), nil
 }
 
 // validateStripPrefix validates a strip prefix pattern with wildcards
