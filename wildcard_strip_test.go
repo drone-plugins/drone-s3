@@ -201,35 +201,35 @@ func TestBuildKeyWithWildcards(t *testing.T) {
 			target:      "deployment",
 			srcPath:     "/harness/artifacts/build-123/module1/app.zip",
 			stripPrefix: "/harness/artifacts/*/",
-			expected:    "/deployment/module1/app.zip",
+			expected:    "deployment/module1/app.zip",
 		},
 		{
 			name:        "Deep nested with double wildcard",
 			target:      "releases",
 			srcPath:     "/harness/artifacts/build-456/services/auth/v1.0/auth-service.zip",
 			stripPrefix: "/harness/artifacts/**/services/",
-			expected:    "/releases/auth/v1.0/auth-service.zip",
+			expected:    "releases/auth/v1.0/auth-service.zip",
 		},
 		{
 			name:        "Question mark pattern",
 			target:      "upload",
 			srcPath:     "/harness/artifacts/build1/app.zip",
 			stripPrefix: "/harness/artifacts/build?/",
-			expected:    "/upload/app.zip",
+			expected:    "upload/app.zip",
 		},
 		{
 			name:        "No wildcard - literal prefix",
 			target:      "backup",
 			srcPath:     "/harness/artifacts/build123/lib.zip",
 			stripPrefix: "/harness/artifacts/",
-			expected:    "/backup/build123/lib.zip",
+			expected:    "backup/build123/lib.zip",
 		},
 		{
 			name:        "Pattern doesn't match - path unchanged",
 			target:      "fallback",
 			srcPath:     "/different/location/file.zip",
 			stripPrefix: "/harness/artifacts/*/",
-			expected:    "/fallback/different/location/file.zip",
+			expected:    "fallback/different/location/file.zip",
 		},
 	}
 
@@ -242,9 +242,6 @@ func TestBuildKeyWithWildcards(t *testing.T) {
 			}
 			rel := strings.TrimPrefix(filepath.ToSlash(suffix), "/")
 			key := filepath.ToSlash(filepath.Join(tt.target, rel))
-			if !strings.HasPrefix(key, "/") {
-				key = "/" + key
-			}
 			if key != tt.expected {
 				t.Errorf("built key = %q, want %q", key, tt.expected)
 			}
@@ -269,28 +266,28 @@ func TestResolveKey_BackCompat(t *testing.T) {
 			target:      "hello",
 			srcPath:     "foo/bar.zip",
 			stripPrefix: "foo/",
-			expected:    "/hello/bar.zip",
+			expected:    "hello/bar.zip",
 		},
 		{
 			name:        "Relative strip_prefix does not trim absolute path",
 			target:      "hello",
 			srcPath:     "/foo/bar.zip",
 			stripPrefix: "foo/",
-			expected:    "/hello/foo/bar.zip",
+			expected:    "hello/foo/bar.zip",
 		},
 		{
 			name:        "Absolute literal prefix trims absolute path",
 			target:      "hello",
 			srcPath:     "/foo/bar.zip",
 			stripPrefix: "/foo/",
-			expected:    "/hello/bar.zip",
+			expected:    "hello/bar.zip",
 		},
 		{
 			name:        "No strip_prefix provided",
 			target:      "/hello",
 			srcPath:     "/foo/bar.zip",
 			stripPrefix: "",
-			expected:    "/hello/foo/bar.zip",
+			expected:    "hello/foo/bar.zip",
 		},
 	}
 

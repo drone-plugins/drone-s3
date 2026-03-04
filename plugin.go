@@ -213,9 +213,6 @@ func (p *Plugin) Exec() error {
 		} else {
 			rel := strings.TrimPrefix(filepath.ToSlash(stripped), "/")
 			target = filepath.ToSlash(filepath.Join(p.Target, rel))
-			if !strings.HasPrefix(target, "/") {
-				target = "/" + target
-			}
 		}
 
 		contentType := matchExtension(match, p.ContentType)
@@ -381,9 +378,7 @@ func assumeRole(ctx context.Context, roleArn, roleSessionName, externalID string
 func resolveKey(target, srcPath, stripPrefix string) string {
 	key := filepath.Join(target, strings.TrimPrefix(srcPath, filepath.ToSlash(stripPrefix)))
 	key = filepath.ToSlash(key)
-	if !strings.HasPrefix(key, "/") {
-		key = "/" + key
-	}
+	key = strings.TrimPrefix(key, "/")
 	return key
 }
 
