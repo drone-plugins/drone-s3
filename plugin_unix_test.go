@@ -19,21 +19,21 @@ func TestResolveUnixKey(t *testing.T) {
 			target:      "",
 			srcPath:     "/foo/bar",
 			stripPrefix: "/foo",
-			expected:    "/bar",
+			expected:    "bar",
 		},
 		{
 			name:        "strip prefix not set",
 			target:      "/hello",
 			srcPath:     "/foo/bar",
 			stripPrefix: "",
-			expected:    "/hello/foo/bar",
+			expected:    "hello/foo/bar",
 		},
 		{
 			name:        "everything set",
 			target:      "hello",
 			srcPath:     "/foo/bar",
 			stripPrefix: "/foo",
-			expected:    "/hello/bar",
+			expected:    "hello/bar",
 		},
 	}
 
