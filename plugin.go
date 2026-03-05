@@ -357,11 +357,10 @@ func matchExtension(match string, stringMap map[string]string) string {
 	return ""
 }
 
-func assumeRole(ctx context.Context, roleArn, roleSessionName, externalID string) aws.CredentialsProvider {
-	cfg, err := config.LoadDefaultConfig(ctx)
+func assumeRole(ctx context.Context, roleArn, roleSessionName, externalID, region string) aws.CredentialsProvider {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
-		log.Errorf("failed to load AWS config for assume role: %v", err)
-		return nil
+		log.Fatalf("failed to load AWS config for assume role: %v", err)
 	}
 	stsSvc := sts.NewFromConfig(cfg)
 	duration := time.Hour * 1
@@ -385,6 +384,13 @@ func resolveKey(target, srcPath, stripPrefix string) string {
 func resolveSource(sourceDir, source, stripPrefix string) string {
 	path := strings.TrimPrefix(strings.TrimPrefix(source, sourceDir), "/")
 	return stripPrefix + path
+}
+
+func normalizeEndpoint(endpoint string) string {
+	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
+		return "https://" + endpoint
+	}
+	return endpoint
 }
 
 func isDir(source string, matches []string) error {
@@ -499,14 +505,14 @@ func (p *Plugin) createS3Client(ctx context.Context) *s3.Client {
 			credentials.NewStaticCredentialsProvider(p.Key, p.Secret, ""),
 		))
 	} else if p.IdToken != "" && p.AssumeRole != "" {
-		creds, err := assumeRoleWithWebIdentity(ctx, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken)
+		creds, err := assumeRoleWithWebIdentity(ctx, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken, p.Region)
 		if err != nil {
 			log.Fatalf("failed to assume role with web identity: %v", err)
 		}
 		optFns = append(optFns, config.WithCredentialsProvider(creds))
 	} else if p.AssumeRole != "" {
 		optFns = append(optFns, config.WithCredentialsProvider(
-			assumeRole(ctx, p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID),
+			assumeRole(ctx, p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID, p.Region),
 		))
 	} else {
 		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
@@ -520,9 +526,13 @@ func (p *Plugin) createS3Client(ctx context.Context) *s3.Client {
 	s3Opts := []func(*s3.Options){}
 
 	if p.Endpoint != "" {
+		endpoint := normalizeEndpoint(p.Endpoint)
 		s3Opts = append(s3Opts, func(o *s3.Options) {
-			o.BaseEndpoint = aws.String(p.Endpoint)
+			o.BaseEndpoint = aws.String(endpoint)
 			o.UsePathStyle = p.PathStyle
+			// S3-compatible services (MinIO, Spaces, B2, etc.) may not support the
+			// CRC32 checksums that SDK v2 sends by default with PutObject.
+			o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 		})
 	} else if p.PathStyle {
 		s3Opts = append(s3Opts, func(o *s3.Options) {
@@ -549,8 +559,8 @@ func (p *Plugin) createS3Client(ctx context.Context) *s3.Client {
 	return client
 }
 
-func assumeRoleWithWebIdentity(ctx context.Context, roleArn, roleSessionName, idToken string) (aws.CredentialsProvider, error) {
-	cfg, err := config.LoadDefaultConfig(ctx)
+func assumeRoleWithWebIdentity(ctx context.Context, roleArn, roleSessionName, idToken, region string) (aws.CredentialsProvider, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %v", err)
 	}
@@ -562,6 +572,9 @@ func assumeRoleWithWebIdentity(ctx context.Context, roleArn, roleSessionName, id
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to assume role with web identity: %w", err)
+	}
+	if result.Credentials == nil {
+		return nil, fmt.Errorf("STS AssumeRoleWithWebIdentity returned nil credentials")
 	}
 	return credentials.NewStaticCredentialsProvider(
 		*result.Credentials.AccessKeyId,
