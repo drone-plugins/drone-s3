@@ -387,10 +387,10 @@ func resolveSource(sourceDir, source, stripPrefix string) string {
 }
 
 func normalizeEndpoint(endpoint string) string {
-	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
-		return "https://" + endpoint
+	if endpoint == "" || strings.Contains(endpoint, "://") {
+		return endpoint
 	}
-	return endpoint
+	return "https://" + endpoint
 }
 
 func isDir(source string, matches []string) error {
