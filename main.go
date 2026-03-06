@@ -150,6 +150,11 @@ func main() {
 			Usage:  "OIDC token for assuming role via web identity",
 			EnvVar: "PLUGIN_OIDC_TOKEN_ID",
 		},
+		cli.StringFlag{
+			Name:   "session-token",
+			Usage:  "aws session token for temporary credentials (e.g., from EKS Pod Identity, IRSA, STS)",
+			EnvVar: "PLUGIN_SESSION_TOKEN,AWS_SESSION_TOKEN",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -187,6 +192,7 @@ func run(c *cli.Context) error {
 		DryRun:                c.Bool("dry-run"),
 		ExternalID:            c.String("external-id"),
 		IdToken:               c.String("oidc-token-id"),
+		SessionToken:          c.String("session-token"),
 	}
 
 	return plugin.Exec()
