@@ -106,6 +106,9 @@ type Plugin struct {
 
 	// set OIDC ID Token to retrieve temporary credentials
 	IdToken string
+
+	// AWS session token for temporary credentials (e.g., from EKS Pod Identity, IRSA, STS)
+	SessionToken string
 }
 
 // Exec runs the plugin
@@ -501,8 +504,13 @@ func (p *Plugin) createS3Client(ctx context.Context) *s3.Client {
 	}
 
 	if p.Key != "" && p.Secret != "" {
+		if p.SessionToken != "" {
+			log.Info("Using static credentials with session token (temporary credentials)")
+		} else {
+			log.Info("Using static credentials (access key and secret key)")
+		}
 		optFns = append(optFns, config.WithCredentialsProvider(
-			credentials.NewStaticCredentialsProvider(p.Key, p.Secret, ""),
+			credentials.NewStaticCredentialsProvider(p.Key, p.Secret, p.SessionToken),
 		))
 	} else if p.IdToken != "" && p.AssumeRole != "" {
 		creds, err := assumeRoleWithWebIdentity(ctx, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken, p.Region)
@@ -515,7 +523,19 @@ func (p *Plugin) createS3Client(ctx context.Context) *s3.Client {
 			assumeRole(ctx, p.AssumeRole, p.AssumeRoleSessionName, p.ExternalID, p.Region),
 		))
 	} else {
-		log.Warn("AWS Key and/or Secret not provided (falling back to ec2 instance profile)")
+		// No explicit credentials provided, falling back to the default AWS SDK credential chain.
+		// The SDK will check: env vars -> shared credentials -> container credentials -> EC2 IMDS
+		if containerCredsURI := os.Getenv("AWS_CONTAINER_CREDENTIALS_FULL_URI"); containerCredsURI != "" {
+			log.WithField("uri", containerCredsURI).Info(
+				"No explicit credentials provided; AWS SDK will use EKS Pod Identity / container credentials")
+		} else if os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI") != "" {
+			log.Info("No explicit credentials provided; AWS SDK will use ECS container credentials")
+		} else if os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE") != "" {
+			log.Info("No explicit credentials provided; AWS SDK will use IRSA (Web Identity Token)")
+		} else {
+			log.Warn("No AWS credentials provided and no container/identity credential source detected. " +
+				"Falling back to EC2 instance metadata (IMDS). This may fail if not running on EC2.")
+		}
 	}
 
 	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
