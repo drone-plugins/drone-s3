@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"mime"
 	"os"
 	"path/filepath"
@@ -19,7 +20,6 @@ import (
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/mattn/go-zglob"
-	log "github.com/sirupsen/logrus"
 )
 
 var errSkip = fmt.Errorf("skip")
@@ -129,27 +129,18 @@ func (p *Plugin) Exec() error {
 		return p.downloadS3Objects(ctx, client, sourceDir)
 	}
 
-	log.WithFields(log.Fields{
-		"region":   p.Region,
-		"endpoint": p.Endpoint,
-		"bucket":   p.Bucket,
-	}).Info("Attempting to upload")
+	slog.Info("Attempting to upload", "region", p.Region, "endpoint", p.Endpoint, "bucket", p.Bucket)
 
 	matches, err := matches(p.Source, p.Exclude)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Error("Could not match files")
+		slog.Error("Could not match files", "error", err)
 		return err
 	}
 
 	normalizedStrip := strings.ReplaceAll(p.StripPrefix, "\\", "/")
 	if p.StripPrefix != "" && strings.HasPrefix(normalizedStrip, "/") {
 		if err := validateStripPrefix(p.StripPrefix); err != nil {
-			log.WithFields(log.Fields{
-				"error":   err,
-				"pattern": p.StripPrefix,
-			}).Error("Invalid strip_prefix pattern")
+			slog.Error("Invalid strip_prefix pattern", "error", err, "pattern", p.StripPrefix)
 			return err
 		}
 	}
@@ -159,10 +150,7 @@ func (p *Plugin) Exec() error {
 		var err error
 		compiled, err = patternToRegex(normalizedStrip)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error":   err,
-				"pattern": p.StripPrefix,
-			}).Error("Failed to compile strip_prefix pattern")
+			slog.Error("Failed to compile strip_prefix pattern", "error", err, "pattern", p.StripPrefix)
 			return err
 		}
 	}
@@ -174,10 +162,7 @@ func (p *Plugin) Exec() error {
 			if err == errSkip {
 				continue
 			}
-			log.WithFields(log.Fields{
-				"error": err,
-				"match": match,
-			}).Error("Directory specified without glob pattern")
+			slog.Error("Directory specified without glob pattern", "error", err, "match", match)
 			return err
 		}
 
@@ -188,11 +173,7 @@ func (p *Plugin) Exec() error {
 				var err error
 				stripped, matched, err = stripWildcardPrefixWithRegex(match, normalizedStrip, compiled)
 				if err != nil {
-					log.WithFields(log.Fields{
-						"error":   err,
-						"path":    match,
-						"pattern": p.StripPrefix,
-					}).Warn("Failed to strip prefix, using original path")
+				slog.Warn("Failed to strip prefix, using original path", "error", err, "path", match, "pattern", p.StripPrefix)
 					stripped = match
 				}
 			} else {
@@ -229,11 +210,7 @@ func (p *Plugin) Exec() error {
 			}
 		}
 
-		log.WithFields(log.Fields{
-			"name":   match,
-			"bucket": p.Bucket,
-			"target": target,
-		}).Info("Uploading file")
+		slog.Info("Uploading file", "name", match, "bucket", p.Bucket, "target", target)
 
 		if p.DryRun {
 			removed := ""
@@ -242,22 +219,19 @@ func (p *Plugin) Exec() error {
 				rem := strings.TrimSuffix(orig, filepath.ToSlash(stripped))
 				removed = rem
 			}
-			log.WithFields(log.Fields{
-				"name":           match,
-				"bucket":         p.Bucket,
-				"target":         target,
-				"strip_pattern":  p.StripPrefix,
-				"removed_prefix": removed,
-			}).Info("Dry-run: would upload")
+			slog.Info("Dry-run: would upload",
+				"name", match,
+				"bucket", p.Bucket,
+				"target", target,
+				"strip_pattern", p.StripPrefix,
+				"removed_prefix", removed,
+			)
 			continue
 		}
 
 		f, err := os.Open(match)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"error": err,
-				"file":  match,
-			}).Error("Problem opening file")
+		slog.Error("Problem opening file", "error", err, "file", match)
 			return err
 		}
 		defer f.Close()
@@ -295,12 +269,7 @@ func (p *Plugin) Exec() error {
 		_, err = client.PutObject(ctx, putObjectInput)
 
 		if err != nil {
-			log.WithFields(log.Fields{
-				"name":   match,
-				"bucket": p.Bucket,
-				"target": target,
-				"error":  err,
-			}).Error("Could not upload file")
+		slog.Error("Could not upload file", "name", match, "bucket", p.Bucket, "target", target, "error", err)
 
 			return err
 		}
@@ -308,9 +277,7 @@ func (p *Plugin) Exec() error {
 	}
 
 	if normalizedStrip != "" && !anyMatched {
-		log.WithFields(log.Fields{
-			"pattern": p.StripPrefix,
-		}).Warn("strip_prefix did not match any paths; keys will include original path")
+		slog.Warn("strip_prefix did not match any paths; keys will include original path", "pattern", p.StripPrefix)
 	}
 
 	return nil
@@ -363,7 +330,8 @@ func matchExtension(match string, stringMap map[string]string) string {
 func assumeRole(ctx context.Context, roleArn, roleSessionName, externalID, region string) aws.CredentialsProvider {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
-		log.Fatalf("failed to load AWS config for assume role: %v", err)
+		slog.Error("failed to load AWS config for assume role", "error", err)
+		os.Exit(1)
 	}
 	stsSvc := sts.NewFromConfig(cfg)
 	duration := time.Hour * 1
@@ -421,21 +389,14 @@ func normalizePath(path string) string {
 }
 
 func (p *Plugin) downloadS3Object(ctx context.Context, client *s3.Client, sourceDir, key, target string) error {
-	log.WithFields(log.Fields{
-		"bucket": p.Bucket,
-		"key":    key,
-	}).Info("Getting S3 object")
+	slog.Info("Getting S3 object", "bucket", p.Bucket, "key", key)
 
 	obj, err := client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: &p.Bucket,
 		Key:    &key,
 	})
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":  err,
-			"bucket": p.Bucket,
-			"key":    key,
-		}).Error("Cannot get S3 object")
+		slog.Error("Cannot get S3 object", "error", err, "bucket", p.Bucket, "key", key)
 		return err
 	}
 	defer obj.Body.Close()
@@ -449,20 +410,14 @@ func (p *Plugin) downloadS3Object(ctx context.Context, client *s3.Client, source
 
 	f, err := os.Create(destination)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-			"file":  destination,
-		}).Error("Failed to create file")
+		slog.Error("Failed to create file", "error", err, "file", destination)
 		return err
 	}
 	defer f.Close()
 
 	_, err = io.Copy(f, obj.Body)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-			"file":  destination,
-		}).Error("Failed to write file")
+		slog.Error("Failed to write file", "error", err, "file", destination)
 		return err
 	}
 
@@ -470,21 +425,14 @@ func (p *Plugin) downloadS3Object(ctx context.Context, client *s3.Client, source
 }
 
 func (p *Plugin) downloadS3Objects(ctx context.Context, client *s3.Client, sourceDir string) error {
-	log.WithFields(log.Fields{
-		"bucket": p.Bucket,
-		"dir":    sourceDir,
-	}).Info("Listing S3 directory")
+	slog.Info("Listing S3 directory", "bucket", p.Bucket, "dir", sourceDir)
 
 	list, err := client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
 		Bucket: &p.Bucket,
 		Prefix: &sourceDir,
 	})
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":  err,
-			"bucket": p.Bucket,
-			"dir":    sourceDir,
-		}).Error("Cannot list S3 directory")
+		slog.Error("Cannot list S3 directory", "error", err, "bucket", p.Bucket, "dir", sourceDir)
 		return err
 	}
 
@@ -505,9 +453,9 @@ func (p *Plugin) createS3Client(ctx context.Context) *s3.Client {
 
 	if p.Key != "" && p.Secret != "" {
 		if p.SessionToken != "" {
-			log.Info("Using static credentials with session token (temporary credentials)")
+			slog.Info("Using static credentials with session token (temporary credentials)")
 		} else {
-			log.Info("Using static credentials (access key and secret key)")
+			slog.Info("Using static credentials (access key and secret key)")
 		}
 		optFns = append(optFns, config.WithCredentialsProvider(
 			credentials.NewStaticCredentialsProvider(p.Key, p.Secret, p.SessionToken),
@@ -515,7 +463,8 @@ func (p *Plugin) createS3Client(ctx context.Context) *s3.Client {
 	} else if p.IdToken != "" && p.AssumeRole != "" {
 		creds, err := assumeRoleWithWebIdentity(ctx, p.AssumeRole, p.AssumeRoleSessionName, p.IdToken, p.Region)
 		if err != nil {
-			log.Fatalf("failed to assume role with web identity: %v", err)
+			slog.Error("failed to assume role with web identity", "error", err)
+			os.Exit(1)
 		}
 		optFns = append(optFns, config.WithCredentialsProvider(creds))
 	} else if p.AssumeRole != "" {
@@ -526,21 +475,21 @@ func (p *Plugin) createS3Client(ctx context.Context) *s3.Client {
 		// No explicit credentials provided, falling back to the default AWS SDK credential chain.
 		// The SDK will check: env vars -> shared credentials -> container credentials -> EC2 IMDS
 		if containerCredsURI := os.Getenv("AWS_CONTAINER_CREDENTIALS_FULL_URI"); containerCredsURI != "" {
-			log.WithField("uri", containerCredsURI).Info(
-				"No explicit credentials provided; AWS SDK will use EKS Pod Identity / container credentials")
+			slog.Info("No explicit credentials provided; AWS SDK will use EKS Pod Identity / container credentials", "uri", containerCredsURI)
 		} else if os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI") != "" {
-			log.Info("No explicit credentials provided; AWS SDK will use ECS container credentials")
+			slog.Info("No explicit credentials provided; AWS SDK will use ECS container credentials")
 		} else if os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE") != "" {
-			log.Info("No explicit credentials provided; AWS SDK will use IRSA (Web Identity Token)")
+			slog.Info("No explicit credentials provided; AWS SDK will use IRSA (Web Identity Token)")
 		} else {
-			log.Warn("No AWS credentials provided and no container/identity credential source detected. " +
+			slog.Warn("No AWS credentials provided and no container/identity credential source detected. " +
 				"Falling back to EC2 instance metadata (IMDS). This may fail if not running on EC2.")
 		}
 	}
 
 	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
 	if err != nil {
-		log.Fatalf("failed to load AWS config: %v", err)
+		slog.Error("failed to load AWS config", "error", err)
+		os.Exit(1)
 	}
 
 	s3Opts := []func(*s3.Options){}
@@ -563,7 +512,7 @@ func (p *Plugin) createS3Client(ctx context.Context) *s3.Client {
 	client := s3.NewFromConfig(cfg, s3Opts...)
 
 	if len(p.UserRoleArn) > 0 {
-		log.WithField("UserRoleArn", p.UserRoleArn).Info("Using user role ARN")
+		slog.Info("Using user role ARN", "UserRoleArn", p.UserRoleArn)
 
 		stsSvc := sts.NewFromConfig(cfg)
 		provider := stscreds.NewAssumeRoleProvider(stsSvc, p.UserRoleArn, func(o *stscreds.AssumeRoleOptions) {
