@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.7
 	github.com/joho/godotenv v1.4.0
 	github.com/mattn/go-zglob v0.0.4
-	github.com/urfave/cli v1.22.10
+	github.com/urfave/cli v1.22.17
 )
 
 require (
@@ -31,6 +31,6 @@ require (
 )
 
 require (
-	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 )
