@@ -281,7 +281,7 @@ pipeline:
               execution:
                 steps:
                   - step:
-                      identifier: build_amd64ltsc2022
+                      identifier: build_amd641809
                       type: Run
                       name: Build Binary
                       spec:
@@ -305,7 +305,7 @@ pipeline:
                   - step:
                       type: Plugin
                       name: Build and Push on Tag
-                      identifier: Plugin_1
+                      identifier: Plugin_1809
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker
@@ -322,7 +322,7 @@ pipeline:
                   - step:
                       type: BuildAndPushDockerRegistry
                       name: Build And Push on Branch
-                      identifier: BuildAndPushDockerRegistry_1
+                      identifier: BuildAndPushDockerRegistry_1809
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
                         repo: plugins/s3
@@ -330,6 +330,354 @@ pipeline:
                           - windows-1809-amd64
                         caching: false
                         dockerfile: docker/Dockerfile.windows.1809
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "branch"
+              infrastructure:
+                type: VM
+                spec:
+                  type: Pool
+                  spec:
+                    poolName: windows-2019
+                    os: Windows
+            delegateSelectors:
+              - windows-vm
+        - stage:
+            name: rf-linux-amd64
+            identifier: rf_linuxamd64
+            description: ""
+            type: CI
+            spec:
+              cloneCodebase: true
+              caching:
+                enabled: false
+                paths: []
+              platform:
+                os: Linux
+                arch: Amd64
+              runtime:
+                type: Cloud
+                spec: {}
+              execution:
+                steps:
+                  - step:
+                      type: GitClone
+                      name: Clone RF Dockerfiles
+                      identifier: clone_rf
+                      spec:
+                        connectorRef: RapidFortPlugins
+                        build:
+                          type: branch
+                          spec:
+                            branch: main
+                        cloneDirectory: rf-plugins
+                  - step:
+                      type: Run
+                      name: Build Binary
+                      identifier: rf_build_binary_amd64
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.25.7
+                        shell: Sh
+                        command: |-
+                          # force go modules
+                          export GOPATH=""
+
+                          # disable cgo
+                          export CGO_ENABLED=0
+
+                          set -e
+                          set -x
+
+                          # linux
+                          export GOOS=linux GOARCH=amd64
+
+                          go build -v -ldflags "-X main.version=" -a -tags netgo -o release/linux/amd64/drone-s3 .
+                        envVariables:
+                          CGO_ENABLED: "0"
+                  - step:
+                      type: Plugin
+                      name: RF Build and Push on Tag
+                      identifier: rf_docker_build_push_tag
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker
+                        settings:
+                          username: <+secrets.getValue("harnesssecureusername")>
+                          password: <+secrets.getValue("dockerHarnessSecurePwd")>
+                          repo: harnesssecure/s3
+                          dockerfile: rf-plugins/drone-s3/Dockerfile.linux.amd64.rf
+                          auto_tag: "true"
+                          auto_tag_suffix: linux-amd64
+                          base_image_username: <+secrets.getValue("harness0HARUsername")>
+                          base_image_password: <+secrets.getValue("harness0HARPAT")>
+                          base_image_registry: harness0.harness.io/oci/docker_artifacts
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: RF Build and Push on Branch
+                      identifier: rf_build_push_branch
+                      spec:
+                        connectorRef: harnesssecure
+                        repo: harnesssecure/s3
+                        tags:
+                          - linux-amd64
+                        caching: false
+                        dockerfile: rf-plugins/drone-s3/Dockerfile.linux.amd64.rf
+                        envVariables:
+                          PLUGIN_BASE_IMAGE_USERNAME: <+secrets.getValue("harness0HARUsername")>
+                          PLUGIN_BASE_IMAGE_PASSWORD: <+secrets.getValue("harness0HARPAT")>
+                          PLUGIN_BASE_IMAGE_REGISTRY: harness0.harness.io/oci/docker_artifacts
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> == "branch"
+        - stage:
+            identifier: rf_linarm64
+            type: CI
+            name: rf-linux-arm64
+            description: ""
+            spec:
+              cloneCodebase: true
+              caching:
+                enabled: false
+                paths: []
+              platform:
+                os: Linux
+                arch: Arm64
+              runtime:
+                type: Cloud
+                spec: {}
+              execution:
+                steps:
+                  - step:
+                      type: GitClone
+                      name: Clone RF Dockerfiles
+                      identifier: clone_rf_arm64
+                      spec:
+                        connectorRef: RapidFortPlugins
+                        build:
+                          type: branch
+                          spec:
+                            branch: main
+                        cloneDirectory: rf-plugins
+                  - step:
+                      identifier: rf_buildpush_arm64
+                      type: Run
+                      name: Build Binary
+                      spec:
+                        connectorRef: account.harnessImage
+                        image: golang:1.25.7
+                        shell: Sh
+                        command: |-
+                          # force go modules
+                          export GOPATH=""
+
+                          # disable cgo
+                          export CGO_ENABLED=0
+
+                          set -e
+                          set -x
+
+                          # linux
+                          export GOOS=linux GOARCH=arm64
+
+                          go build -v -ldflags "-X main.version=" -a -tags netgo -o release/linux/arm64/drone-s3 .
+                  - step:
+                      type: Plugin
+                      name: RF Build and Push on Tag
+                      identifier: rf_docker_build_push_tag_arm64
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker
+                        settings:
+                          username: <+secrets.getValue("harnesssecureusername")>
+                          password: <+secrets.getValue("dockerHarnessSecurePwd")>
+                          repo: harnesssecure/s3
+                          dockerfile: rf-plugins/drone-s3/Dockerfile.linux.arm64.rf
+                          auto_tag: "true"
+                          auto_tag_suffix: linux-arm64
+                          base_image_username: <+secrets.getValue("harness0HARUsername")>
+                          base_image_password: <+secrets.getValue("harness0HARPAT")>
+                          base_image_registry: harness0.harness.io/oci/docker_artifacts
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: RF Build and Push on Branch
+                      identifier: rf_build_push_branch_arm64
+                      spec:
+                        connectorRef: harnesssecure
+                        repo: harnesssecure/s3
+                        tags:
+                          - linux-arm64
+                        caching: false
+                        dockerfile: rf-plugins/drone-s3/Dockerfile.linux.arm64.rf
+                        envVariables:
+                          PLUGIN_BASE_IMAGE_USERNAME: <+secrets.getValue("harness0HARUsername")>
+                          PLUGIN_BASE_IMAGE_PASSWORD: <+secrets.getValue("harness0HARPAT")>
+                          PLUGIN_BASE_IMAGE_REGISTRY: harness0.harness.io/oci/docker_artifacts
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "branch"
+        - stage:
+            name: rf-win-ltsc2022-amd64
+            identifier: rf_win_ltsc2022_amd64
+            type: CI
+            description: ""
+            spec:
+              cloneCodebase: true
+              caching:
+                enabled: false
+                paths: []
+              platform:
+                os: Windows
+                arch: Amd64
+              runtime:
+                type: Cloud
+                spec: {}
+              execution:
+                steps:
+                  - step:
+                      type: GitClone
+                      name: Clone RF Dockerfiles
+                      identifier: clone_rf_win_ltsc2022
+                      spec:
+                        connectorRef: RapidFortPlugins
+                        build:
+                          type: branch
+                          spec:
+                            branch: main
+                        cloneDirectory: rf-plugins
+                  - step:
+                      identifier: build_amd64ltsc2022_rf
+                      type: Run
+                      name: Build Binary
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.23.0
+                        shell: Sh
+                        command: |-
+                          # force go modules
+                          export GOPATH=""
+
+                          # disable cgo
+                          export CGO_ENABLED=0
+
+                          set -e
+                          set -x
+
+                          # linux
+                          GOOS=windows
+
+                          go build -v -ldflags "-X main.version=" -a -tags netgo -o release/windows/amd64/drone-s3.exe .
+                  - step:
+                      type: Plugin
+                      name: RF Build and Push on Tag
+                      identifier: RF_Build_and_Push_on_Tag_ltsc2022
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker
+                        settings:
+                          username: <+secrets.getValue("harnesssecureusername")>
+                          password: <+secrets.getValue("dockerHarnessSecurePwd")>
+                          repo: harnesssecure/s3
+                          dockerfile: rf-plugins/drone-s3/Dockerfile.windows.ltsc2022
+                          auto_tag: "true"
+                          auto_tag_suffix: windows-ltsc2022-amd64
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: RF Build and Push on Branch
+                      identifier: rf_build_push_branch_ltsc2022
+                      spec:
+                        connectorRef: harnesssecure
+                        repo: harnesssecure/s3
+                        tags:
+                          - windows-ltsc2022-amd64
+                        caching: false
+                        dockerfile: rf-plugins/drone-s3/Dockerfile.windows.ltsc2022
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "branch"
+        - stage:
+            identifier: rf_win_1809_amd64
+            type: CI
+            name: rf-win-1809-amd64
+            description: ""
+            spec:
+              cloneCodebase: true
+              caching:
+                enabled: false
+                paths: []
+              execution:
+                steps:
+                  - step:
+                      type: GitClone
+                      name: Clone RF Dockerfiles
+                      identifier: clone_rf_win_1809
+                      spec:
+                        connectorRef: RapidFortPlugins
+                        build:
+                          type: branch
+                          spec:
+                            branch: main
+                        cloneDirectory: rf-plugins
+                  - step:
+                      identifier: build_amd641809_rf
+                      type: Run
+                      name: Build Binary
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.23.0
+                        shell: Sh
+                        command: |-
+                          # force go modules
+                          export GOPATH=""
+
+                          # disable cgo
+                          export CGO_ENABLED=0
+
+                          set -e
+                          set -x
+
+                          # linux
+                          GOOS=windows
+
+                          go build -v -ldflags "-X main.version=" -a -tags netgo -o release/windows/amd64/drone-s3.exe .
+                  - step:
+                      type: Plugin
+                      name: RF Build and Push on Tag
+                      identifier: RF_Build_and_Push_on_Tag_1809
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker
+                        settings:
+                          username: <+secrets.getValue("harnesssecureusername")>
+                          password: <+secrets.getValue("dockerHarnessSecurePwd")>
+                          repo: harnesssecure/s3
+                          dockerfile: rf-plugins/drone-s3/Dockerfile.windows.1809
+                          auto_tag: "true"
+                          auto_tag_suffix: windows-1809-amd64
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: RF Build and Push on Branch
+                      identifier: rf_build_push_branch_1809
+                      spec:
+                        connectorRef: harnesssecure
+                        repo: harnesssecure/s3
+                        tags:
+                          - windows-1809-amd64
+                        caching: false
+                        dockerfile: rf-plugins/drone-s3/Dockerfile.windows.1809
                       when:
                         stageStatus: Success
                         condition: <+codebase.build.type> == "branch"
@@ -361,6 +709,17 @@ pipeline:
           execution:
             steps:
               - step:
+                  type: GitClone
+                  name: Clone RF Manifest Templates
+                  identifier: clone_rf_manifest
+                  spec:
+                    connectorRef: RapidFortPlugins
+                    build:
+                      type: branch
+                      spec:
+                        branch: main
+                    cloneDirectory: rf-plugins
+              - step:
                   type: Plugin
                   name: Manifest
                   identifier: Manifest
@@ -373,6 +732,23 @@ pipeline:
                       auto_tag: "true"
                       ignore_missing: "true"
                       spec: docker/manifest.tmpl
+                  when:
+                    stageStatus: Success
+                    condition: |
+                      <+codebase.build.type> == "tag" || "branch"
+              - step:
+                  type: Plugin
+                  name: RF Manifest
+                  identifier: rf_manifest
+                  spec:
+                    connectorRef: Plugins_Docker_Hub_Connector
+                    image: plugins/manifest
+                    settings:
+                      username: <+secrets.getValue("harnesssecureusername")>
+                      password: <+secrets.getValue("dockerHarnessSecurePwd")>
+                      auto_tag: "true"
+                      ignore_missing: "true"
+                      spec: rf-plugins/drone-s3/manifest.tmpl
                   when:
                     stageStatus: Success
                     condition: |
