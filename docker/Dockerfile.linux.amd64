@@ -1,5 +1,5 @@
 FROM alpine:3.17 as alpine
-RUN apk add -U --no-cache ca-certificates
+RUN apk add -U --no-cache ca-certificates busybox-static
 
 FROM scratch
 
@@ -10,4 +10,8 @@ LABEL maintainer="Drone.IO Community <drone-dev@googlegroups.com>" \
 
 ADD release/linux/amd64/drone-s3 /bin/
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# Static busybox installed as /bin/sh so the AWS SDK's credential_process
+# provider (which wraps commands in `sh -c`) and any other shell-based
+# invocations work inside this otherwise-scratch image.
+COPY --from=alpine /bin/busybox.static /bin/sh
 ENTRYPOINT ["/bin/drone-s3"]
