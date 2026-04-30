@@ -1,3 +1,6 @@
+FROM alpine:3.17 as alpine
+RUN apk add -U --no-cache busybox-static
+
 FROM plugins/base:multiarch
 
 LABEL maintainer="Drone.IO Community <drone-dev@googlegroups.com>" \
@@ -6,4 +9,5 @@ LABEL maintainer="Drone.IO Community <drone-dev@googlegroups.com>" \
   org.label-schema.schema-version="1.0"
 
 ADD release/linux/arm64/drone-s3 /bin/
+COPY --from=alpine /bin/busybox.static /bin/sh
 ENTRYPOINT ["/bin/drone-s3"]
