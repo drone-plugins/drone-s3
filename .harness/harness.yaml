@@ -690,6 +690,66 @@ pipeline:
                     os: Windows
             delegateSelectors:
               - windows-vm
+        - stage:
+            name: windows-ltsc2025-amd64
+            identifier: windowsltsc2025amd64
+            description: ""
+            type: CI
+            spec:
+              cloneCodebase: true
+              caching:
+                enabled: true
+                override: false
+              buildIntelligence:
+                enabled: true
+              infrastructure:
+                type: VM
+                spec:
+                  type: Pool
+                  spec:
+                    poolName: windows-2025
+                    os: Windows
+              execution:
+                steps:
+                  - step:
+                      type: Run
+                      name: Build Binaries
+                      identifier: Build_Binaries
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.23.0
+                        shell: Sh
+                        command: |-
+                          # force go modules
+                          export GOPATH=""
+
+                          # disable cgo
+                          export CGO_ENABLED=0
+
+                          set -e
+                          set -x
+
+                          # linux
+                          GOOS=windows
+
+                          go build -v -ldflags "-X main.version=" -a -tags netgo -o release/windows/amd64/drone-s3.exe .
+                  - step:
+                      type: Plugin
+                      name: Build and Push on TAG
+                      identifier: Build_and_Push_on_TAG
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker:21.3.0
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                        settings:
+                          username: drone
+                          password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
+                          repo: plugins/s3
+                          dockerfile: docker/Dockerfile.windows.ltsc2025
+                          auto_tag: "true"
+                          auto_tag_suffix: windows-ltsc2025-amd64
     - stage:
         name: Manifest and Release
         identifier: Manifest_and_Release
