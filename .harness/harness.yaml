@@ -740,9 +740,6 @@ pipeline:
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker:21.3.0
-                      when:
-                        stageStatus: Success
-                        condition: <+codebase.build.type> == "tag"
                         settings:
                           username: drone
                           password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
@@ -750,6 +747,9 @@ pipeline:
                           dockerfile: docker/Dockerfile.windows.ltsc2025
                           auto_tag: "true"
                           auto_tag_suffix: windows-ltsc2025-amd64
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
     - stage:
         name: Manifest and Release
         identifier: Manifest_and_Release
