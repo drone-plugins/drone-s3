@@ -751,6 +751,105 @@ pipeline:
                       when:
                         stageStatus: Success
                         condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: Build and Push on Branch
+                      identifier: BuildAndPushDockerRegistry_ltsc2025
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        repo: plugins/s3
+                        tags:
+                          - windows-ltsc2025-amd64
+                        caching: false
+                        dockerfile: docker/Dockerfile.windows.ltsc2025
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "branch"
+        - stage:
+            name: win-ltsc2025-amd64-rf
+            identifier: winltsc2025amd64rf
+            description: ""
+            type: CI
+            spec:
+              cloneCodebase: true
+              caching:
+                enabled: false
+                paths: []
+              buildIntelligence:
+                enabled: false
+              infrastructure:
+                type: VM
+                spec:
+                  type: Pool
+                  spec:
+                    poolName: windows-2025
+                    os: Windows
+              execution:
+                steps:
+                  - step:
+                      type: GitClone
+                      name: Clone RF Dockerfiles
+                      identifier: Clone_RF_Dockerfiles
+                      spec:
+                        connectorRef: RapidFortPlugins
+                        cloneDirectory: rf-plugins
+                        build:
+                          type: branch
+                          spec:
+                            branch: main
+                  - step:
+                      type: Run
+                      name: Build Binaries
+                      identifier: Build_Binaries
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: golang:1.23.0
+                        shell: Sh
+                        command: |-
+                          # force go modules
+                          export GOPATH=""
+
+                          # disable cgo
+                          export CGO_ENABLED=0
+
+                          set -e
+                          set -x
+
+                          # linux
+                          GOOS=windows
+
+                          go build -v -ldflags "-X main.version=" -a -tags netgo -o release/windows/amd64/drone-s3.exe .
+                  - step:
+                      type: Plugin
+                      name: RF Build and Push on Tag
+                      identifier: RF_Build_and_Push_on_Tag
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker:21.3.0
+                        settings:
+                          username: <+secrets.getValue("harnesssecureusername")>
+                          password: <+secrets.getValue("dockerHarnessSecurePwd")>
+                          repo: harnesssecure/s3
+                          dockerfile: rf-plugins/drone-s3/Dockerfile.windows.ltsc2025
+                          auto_tag: "true"
+                          auto_tag_suffix: windows-ltsc2025-amd64
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: RF Build and Push on Branch
+                      identifier: rf_build_push_branch
+                      spec:
+                        connectorRef: harnesssecure
+                        repo: harnesssecure/s3
+                        tags:
+                          - windows-ltsc2025-amd64
+                        caching: false
+                        dockerfile: rf-plugins/drone-s3/Dockerfile.windows.ltsc2025
+                      when:
+                        stageStatus: Success
+                        condition: <+codebase.build.type> == "branch"
     - stage:
         name: Manifest and Release
         identifier: Manifest_and_Release
