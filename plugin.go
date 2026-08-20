@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"mime"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -21,6 +25,67 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/mattn/go-zglob"
 )
+
+// artifactFile is the fileUpload/v1 JSON structure expected by CI manager.
+type artifactFile struct {
+	Kind string           `json:"kind"`
+	Data artifactFileData `json:"data"`
+}
+
+type artifactFileData struct {
+	FileArtifacts []fileArtifactEntry `json:"fileArtifacts"`
+}
+
+type fileArtifactEntry struct {
+	Name       string `json:"name"`
+	URL        string `json:"url"`
+	FilePath   string `json:"filePath"`
+	BucketName string `json:"bucketName"`
+	Region     string `json:"region"`
+	Digest     string `json:"digest,omitempty"`
+}
+
+// writeArtifactFile writes the uploaded file metadata to the path in PLUGIN_ARTIFACT_FILE
+// so that CI manager can pick it up and store it.
+func writeArtifactFile(entries []fileArtifactEntry) {
+	path := os.Getenv("PLUGIN_ARTIFACT_FILE")
+	if path == "" {
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		slog.Warn("Failed to create artifact file directory", "dir", filepath.Dir(path), "error", err)
+		return
+	}
+	payload := artifactFile{
+		Kind: "fileUpload/v1",
+		Data: artifactFileData{FileArtifacts: entries},
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		slog.Warn("Failed to marshal artifact file metadata", "error", err)
+		return
+	}
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		slog.Warn("Failed to write artifact file", "path", path, "error", err)
+	}
+}
+
+// computeFileSHA256 opens the file at path, computes its SHA-256 digest, and
+// returns it as "sha256:<hex>". Returns an empty string on error (soft-fail).
+func computeFileSHA256(path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		slog.Warn("Failed to open file for SHA256 computation", "file", path, "error", err)
+		return ""
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		slog.Warn("Failed to compute SHA256 digest", "file", path, "error", err)
+		return ""
+	}
+	return "sha256:" + hex.EncodeToString(h.Sum(nil))
+}
 
 var errSkip = fmt.Errorf("skip")
 
@@ -156,6 +221,7 @@ func (p *Plugin) Exec() error {
 	}
 
 	anyMatched := false
+	var uploadedArtifacts []fileArtifactEntry
 
 	for _, match := range matches {
 		if err := isDir(match, matches); err != nil {
@@ -229,9 +295,11 @@ func (p *Plugin) Exec() error {
 			continue
 		}
 
+		digest := computeFileSHA256(match)
+
 		f, err := os.Open(match)
 		if err != nil {
-		slog.Error("Problem opening file", "error", err, "file", match)
+			slog.Error("Problem opening file", "error", err, "file", match)
 			return err
 		}
 		defer f.Close()
@@ -267,17 +335,28 @@ func (p *Plugin) Exec() error {
 		}
 
 		_, err = client.PutObject(ctx, putObjectInput)
-
 		if err != nil {
-		slog.Error("Could not upload file", "name", match, "bucket", p.Bucket, "target", target, "error", err)
-
+			slog.Error("Could not upload file", "name", match, "bucket", p.Bucket, "target", target, "error", err)
 			return err
 		}
 		f.Close()
+
+		uploadedArtifacts = append(uploadedArtifacts, fileArtifactEntry{
+			Name:       filepath.Base(target),
+			URL:        p.buildObjectURL(target),
+			FilePath:   target,
+			BucketName: p.Bucket,
+			Region:     p.Region,
+			Digest:     digest,
+		})
 	}
 
 	if normalizedStrip != "" && !anyMatched {
 		slog.Warn("strip_prefix did not match any paths; keys will include original path", "pattern", p.StripPrefix)
+	}
+
+	if len(uploadedArtifacts) > 0 {
+		writeArtifactFile(uploadedArtifacts)
 	}
 
 	return nil
@@ -362,6 +441,39 @@ func normalizeEndpoint(endpoint string) string {
 		return endpoint
 	}
 	return "https://" + endpoint
+}
+
+// buildObjectURL returns the URL of the uploaded object, honoring the
+// plugin's configured endpoint/region/path-style settings instead of
+// assuming the legacy global "s3.amazonaws.com" host. That host doesn't
+// resolve correctly for S3-compatible backends (MinIO, DigitalOcean Spaces,
+// etc. via Endpoint) nor for every AWS region (e.g. opt-in regions), so the
+// URL is derived the same way the upload itself was addressed.
+func (p *Plugin) buildObjectURL(target string) string {
+	bucket := strings.Trim(p.Bucket, "/")
+	key := strings.TrimPrefix(target, "/")
+
+	if p.Endpoint != "" {
+		endpoint := normalizeEndpoint(p.Endpoint)
+		u, err := url.Parse(endpoint)
+		if err != nil || u.Host == "" {
+			// Fall back to a best-effort path-style URL against the raw endpoint.
+			return strings.TrimSuffix(endpoint, "/") + "/" + bucket + "/" + key
+		}
+		if p.PathStyle {
+			u.Path = "/" + bucket + "/" + key
+		} else {
+			u.Host = bucket + "." + u.Host
+			u.Path = "/" + key
+		}
+		return u.String()
+	}
+
+	region := p.Region
+	if region == "" || region == "us-east-1" {
+		return fmt.Sprintf("https://s3.amazonaws.com/%s/%s", bucket, key)
+	}
+	return fmt.Sprintf("https://s3.%s.amazonaws.com/%s/%s", region, bucket, key)
 }
 
 func isDir(source string, matches []string) error {

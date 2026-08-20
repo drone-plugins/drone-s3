@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -88,4 +89,119 @@ func TestIsDir(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuildObjectURL(t *testing.T) {
+	tests := []struct {
+		name   string
+		plugin Plugin
+		target string
+		want   string
+	}{
+		{
+			name:   "default AWS, no region specified",
+			plugin: Plugin{Bucket: "my-bucket"},
+			target: "builds/app.zip",
+			want:   "https://s3.amazonaws.com/my-bucket/builds/app.zip",
+		},
+		{
+			name:   "default AWS, us-east-1 uses legacy global endpoint",
+			plugin: Plugin{Bucket: "my-bucket", Region: "us-east-1"},
+			target: "builds/app.zip",
+			want:   "https://s3.amazonaws.com/my-bucket/builds/app.zip",
+		},
+		{
+			name:   "AWS opt-in region uses region-qualified endpoint",
+			plugin: Plugin{Bucket: "my-bucket", Region: "ap-east-1"},
+			target: "builds/app.zip",
+			want:   "https://s3.ap-east-1.amazonaws.com/my-bucket/builds/app.zip",
+		},
+		{
+			name:   "custom endpoint with path style (e.g. MinIO)",
+			plugin: Plugin{Bucket: "my-bucket", Endpoint: "minio.internal:9000", PathStyle: true},
+			target: "builds/app.zip",
+			want:   "https://minio.internal:9000/my-bucket/builds/app.zip",
+		},
+		{
+			name:   "custom endpoint with virtual-hosted style",
+			plugin: Plugin{Bucket: "my-bucket", Endpoint: "https://nyc3.digitaloceanspaces.com", PathStyle: false},
+			target: "builds/app.zip",
+			want:   "https://my-bucket.nyc3.digitaloceanspaces.com/builds/app.zip",
+		},
+		{
+			name:   "target with leading slash is normalized",
+			plugin: Plugin{Bucket: "my-bucket"},
+			target: "/builds/app.zip",
+			want:   "https://s3.amazonaws.com/my-bucket/builds/app.zip",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.plugin.buildObjectURL(tc.target)
+			if got != tc.want {
+				t.Errorf("buildObjectURL() = %q; want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestWriteArtifactFile(t *testing.T) {
+	t.Run("writes fileUpload/v1 JSON when PLUGIN_ARTIFACT_FILE is set", func(t *testing.T) {
+		tmpFile := filepath.Join(t.TempDir(), "artifact")
+		t.Setenv("PLUGIN_ARTIFACT_FILE", tmpFile)
+
+		entries := []fileArtifactEntry{
+			{
+				Name:       "app.zip",
+				URL:        "s3://my-bucket/builds/app.zip",
+				FilePath:   "builds/app.zip",
+				BucketName: "my-bucket",
+				Region:     "us-east-1",
+				Digest:     "abc123",
+			},
+		}
+		writeArtifactFile(entries)
+
+		data, err := os.ReadFile(tmpFile)
+		if err != nil {
+			t.Fatalf("Expected artifact file to exist: %v", err)
+		}
+
+		var got artifactFile
+		if err := json.Unmarshal(data, &got); err != nil {
+			t.Fatalf("Expected valid JSON: %v", err)
+		}
+		if got.Kind != "fileUpload/v1" {
+			t.Errorf("Expected kind=fileUpload/v1, got %s", got.Kind)
+		}
+		if len(got.Data.FileArtifacts) != 1 {
+			t.Fatalf("Expected 1 file artifact, got %d", len(got.Data.FileArtifacts))
+		}
+		f := got.Data.FileArtifacts[0]
+		if f.Name != "app.zip" {
+			t.Errorf("Unexpected name: %s", f.Name)
+		}
+		if f.URL != "s3://my-bucket/builds/app.zip" {
+			t.Errorf("Unexpected URL: %s", f.URL)
+		}
+		if f.FilePath != "builds/app.zip" {
+			t.Errorf("Unexpected filePath: %s", f.FilePath)
+		}
+		if f.BucketName != "my-bucket" {
+			t.Errorf("Unexpected bucketName: %s", f.BucketName)
+		}
+		if f.Region != "us-east-1" {
+			t.Errorf("Unexpected region: %s", f.Region)
+		}
+		if f.Digest != "abc123" {
+			t.Errorf("Unexpected digest: %s", f.Digest)
+		}
+	})
+
+	t.Run("no-op when PLUGIN_ARTIFACT_FILE is not set", func(t *testing.T) {
+		t.Setenv("PLUGIN_ARTIFACT_FILE", "")
+		// Should not panic or write anything
+		writeArtifactFile([]fileArtifactEntry{{Name: "f", URL: "s3://b/f"}})
+	})
 }
