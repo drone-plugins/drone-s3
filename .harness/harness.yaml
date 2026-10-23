@@ -36,7 +36,7 @@ pipeline:
                   identifier: lint
                   spec:
                     connectorRef: Plugins_Docker_Hub_Connector
-                    image: golang:1.25.11
+                    image: harness0.harness.io/oci/docker_artifacts/hhi/go:1.26.10
                     shell: Sh
                     command: |-
                       go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
@@ -48,7 +48,7 @@ pipeline:
                   identifier: Run_1
                   spec:
                     connectorRef: Plugins_Docker_Hub_Connector
-                    image: golang:1.25.11
+                    image: harness0.harness.io/oci/docker_artifacts/hhi/go:1.26.10
                     shell: Sh
                     command: go test -cover ./...
     - parallel:
@@ -76,7 +76,7 @@ pipeline:
                       identifier: Run_1
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
-                        image: golang:1.25.11
+                        image: harness0.harness.io/oci/docker_artifacts/hhi/go:1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -150,7 +150,7 @@ pipeline:
                       name: Build Binary
                       spec:
                         connectorRef: account.harnessImage
-                        image: golang:1.25.11
+                        image: harness0.harness.io/oci/docker_artifacts/hhi/go:1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -221,7 +221,7 @@ pipeline:
                       name: Build Binary
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
-                        image: golang:1.23.0
+                        image: golang:1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -286,7 +286,7 @@ pipeline:
                       name: Build Binary
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
-                        image: golang:1.23.0
+                        image: golang:1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -377,7 +377,7 @@ pipeline:
                       identifier: rf_build_binary_amd64
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
-                        image: golang:1.25.11
+                        image: harness0.harness.io/oci/docker_artifacts/hhi/go:1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -469,7 +469,7 @@ pipeline:
                       name: Build Binary
                       spec:
                         connectorRef: account.harnessImage
-                        image: golang:1.25.11
+                        image: harness0.harness.io/oci/docker_artifacts/hhi/go:1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -558,7 +558,7 @@ pipeline:
                       name: Build Binary
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
-                        image: golang:1.23.0
+                        image: golang:1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -634,7 +634,7 @@ pipeline:
                       name: Build Binary
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
-                        image: golang:1.23.0
+                        image: golang:1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -718,7 +718,7 @@ pipeline:
                       identifier: Build_Binaries
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
-                        image: golang:1.23.0
+                        image: golang:1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -803,7 +803,7 @@ pipeline:
                       identifier: Build_Binaries
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
-                        image: golang:1.23.0
+                        image: golang:1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -915,21 +915,31 @@ pipeline:
                       <+codebase.build.type> == "tag" || "branch"
               - step:
                   type: Run
+                  name: Prepare patched Go SDK
+                  identifier: Run_1_GoSDK
+                  spec:
+                    image: harness0.harness.io/oci/docker_artifacts/hhi/go:1.26.10
+                    shell: Sh
+                    command: mkdir -p .hhi-go-toolchain && cp -a /usr/lib/go/. .hhi-go-toolchain/
+                    connectorRef: Plugins_Docker_Hub_Connector
+              - step:
+                  type: Run
                   name: build binaries
                   identifier: Run_1
                   spec:
                     connectorRef: Plugins_Docker_Hub_Connector
-                    image: golang:1.25.11
+                    image: harness0.harness.io/oci/docker_artifacts/hhi/harnessos-alpine:1
                     shell: Sh
                     command: |-
+                      export PATH="$PWD/.hhi-go-toolchain/bin:$PATH" GOPATH=/go GOTOOLCHAIN=local
                       GOOS=linux   GOARCH=amd64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-linux-amd64
                       GOOS=linux   GOARCH=arm64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-linux-arm64
                       GOOS=darwin  GOARCH=amd64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-darwin-amd64
                       GOOS=darwin  GOARCH=arm64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-darwin-arm64
                       GOOS=windows GOARCH=amd64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-windows-amd64
 
-                      apt-get update -y
-                      apt-get install -y zstd
+                      apk update
+                      apk add --no-cache zstd
                       zstd release/drone-s3-linux-amd64
                       zstd release/drone-s3-linux-arm64
                       zstd release/drone-s3-darwin-arm64
