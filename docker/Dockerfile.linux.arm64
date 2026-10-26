@@ -1,4 +1,4 @@
-FROM harness0.harness.io/oci/docker_artifacts/hhi/harnessos-alpine:1@sha256:290a37c85b4284d2c11fa0778e5da79643d912a1f5a57d6f701b77644503b7e7
+FROM alpine:3.24@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
 RUN apk add --no-cache mailcap
 RUN apk add --no-cache 'ca-certificates>=20261020-r0'
 
