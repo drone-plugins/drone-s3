@@ -62,8 +62,6 @@ steps:
   - name: docker
     image: plugins/docker
     settings:
-      pull_image: true
-      no_cache: true
       dockerfile: docker/Dockerfile.linux.amd64
       repo: plugins/s3
       username:
@@ -108,8 +106,6 @@ steps:
   - name: docker
     image: plugins/docker
     settings:
-      pull_image: true
-      no_cache: true
       dockerfile: docker/Dockerfile.linux.arm64
       repo: plugins/s3
       username:
@@ -138,7 +134,7 @@ pool:
 
 steps:
   - name: environment
-    image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+    image: golang:1.23.0@sha256:acfb46be39840f8c2a6b9efdd673c6627011200c73bab4e6d18b8b9ab4641c46
     pull: always
     environment:
       CGO_ENABLED: "0"
@@ -147,7 +143,7 @@ steps:
       - go version
       - go env
   - name: build
-    image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+    image: golang:1.23.0@sha256:acfb46be39840f8c2a6b9efdd673c6627011200c73bab4e6d18b8b9ab4641c46
     environment:
       CGO_ENABLED: "0"
     commands:
@@ -156,8 +152,6 @@ steps:
   - name: docker
     image: plugins/docker
     settings:
-      pull_image: true
-      no_cache: true
       dockerfile: docker/Dockerfile.windows.1809
       repo: plugins/s3
       username:
@@ -197,7 +191,6 @@ steps:
     environment:
       CGO_ENABLED: "0"
     commands:
-      - . ./scripts/setup-go-windows.ps1
       - go version
       - go env
   - name: build
@@ -205,13 +198,10 @@ steps:
     environment:
       CGO_ENABLED: "0"
     commands:
-      - . ./scripts/setup-go-windows.ps1
       - go build -v -ldflags "-X main.version=" -a -tags netgo -o release/windows/amd64/drone-s3.exe .
   - name: docker
     image: plugins/docker
     settings:
-      pull_image: true
-      no_cache: true
       dockerfile: docker/Dockerfile.windows.ltsc2022
       repo: plugins/s3
       username:

@@ -1,9 +1,9 @@
 # escape=`
 
-FROM mcr.microsoft.com/windows/servercore:ltsc2019@sha256:7718cd7138fcb8f7ec594c7cfb1b429c99b50bad8be8cda21db369116cce5ed8 as core
+FROM mcr.microsoft.com/windows/servercore:ltsc2019 as core
 
 
-FROM mcr.microsoft.com/windows/nanoserver:1809@sha256:08d84cf1d9d6edd5f117bd955cc0e9d2a6db4b7f89d51c64518a7fe2372fb8d8
+FROM mcr.microsoft.com/windows/nanoserver:1809
 USER ContainerAdministrator
 
 ENV GODEBUG=netdns=go

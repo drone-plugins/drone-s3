@@ -4,7 +4,7 @@
 # drone-s3 for Windows Server 2025 (LTSC 2025)
 # ---------------------------------------------------------------------------
 
-FROM plugins/base:windows-ltsc2025-amd64@sha256:9b0c50ee6daca9a5eadef008c0beacf9e7e6f2209eea3260ca687468fb7b3b21
+FROM plugins/base:windows-ltsc2025-amd64
 USER ContainerAdministrator
 
 ENV GODEBUG=netdns=go

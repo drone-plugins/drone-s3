@@ -102,8 +102,6 @@ pipeline:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker
                         settings:
-                          pull_image: true
-                          no_cache: true
                           username: drone
                           password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
                           repo: plugins/s3
@@ -118,10 +116,6 @@ pipeline:
                       name: Build And Push on Branch
                       identifier: BuildAndPushDockerRegistry_1
                       spec:
-                        envVariables:
-                          PLUGIN_NO_CACHE: "true"
-                          PLUGIN_PULL_IMAGE: "true"
-                          PLUGIN_ENABLE_CACHE: "false"
                         connectorRef: Plugins_Docker_Hub_Connector
                         repo: plugins/s3
                         tags:
@@ -180,8 +174,6 @@ pipeline:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker
                         settings:
-                          pull_image: true
-                          no_cache: true
                           username: drone
                           password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
                           repo: plugins/s3
@@ -196,10 +188,6 @@ pipeline:
                       name: Build And Push On Branch
                       identifier: BuildAndPushDockerRegistry_1
                       spec:
-                        envVariables:
-                          PLUGIN_NO_CACHE: "true"
-                          PLUGIN_PULL_IMAGE: "true"
-                          PLUGIN_ENABLE_CACHE: "false"
                         connectorRef: Plugins_Docker_Hub_Connector
                         repo: plugins/s3
                         tags:
@@ -234,8 +222,6 @@ pipeline:
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
-                        envVariables:
-                          GOTOOLCHAIN: go1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -259,8 +245,6 @@ pipeline:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker
                         settings:
-                          pull_image: true
-                          no_cache: true
                           username: drone
                           password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
                           repo: plugins/s3
@@ -275,10 +259,6 @@ pipeline:
                       name: Build And Push on Branch
                       identifier: BuildAndPushDockerRegistry_1
                       spec:
-                        envVariables:
-                          PLUGIN_NO_CACHE: "true"
-                          PLUGIN_PULL_IMAGE: "true"
-                          PLUGIN_ENABLE_CACHE: "false"
                         connectorRef: Plugins_Docker_Hub_Connector
                         repo: plugins/s3
                         tags:
@@ -306,7 +286,7 @@ pipeline:
                       name: Build Binary
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
-                        image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+                        image: golang:1.23.0@sha256:acfb46be39840f8c2a6b9efdd673c6627011200c73bab4e6d18b8b9ab4641c46
                         envVariables:
                           GOTOOLCHAIN: go1.26.10
                         shell: Sh
@@ -332,8 +312,6 @@ pipeline:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker
                         settings:
-                          pull_image: true
-                          no_cache: true
                           username: drone
                           password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
                           repo: plugins/s3
@@ -348,10 +326,6 @@ pipeline:
                       name: Build And Push on Branch
                       identifier: BuildAndPushDockerRegistry_1809
                       spec:
-                        envVariables:
-                          PLUGIN_NO_CACHE: "true"
-                          PLUGIN_PULL_IMAGE: "true"
-                          PLUGIN_ENABLE_CACHE: "false"
                         connectorRef: Plugins_Docker_Hub_Connector
                         repo: plugins/s3
                         tags:
@@ -431,8 +405,6 @@ pipeline:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker
                         settings:
-                          pull_image: true
-                          no_cache: true
                           username: <+secrets.getValue("harnesssecureusername")>
                           password: <+secrets.getValue("dockerHarnessSecurePwd")>
                           repo: harnesssecure/s3
@@ -457,9 +429,6 @@ pipeline:
                         caching: false
                         dockerfile: rf-plugins/drone-s3/Dockerfile.linux.amd64.rf
                         envVariables:
-                          PLUGIN_NO_CACHE: "true"
-                          PLUGIN_PULL_IMAGE: "true"
-                          PLUGIN_ENABLE_CACHE: "false"
                           PLUGIN_BASE_IMAGE_USERNAME: <+secrets.getValue("harness0HARUsername")>
                           PLUGIN_BASE_IMAGE_PASSWORD: <+secrets.getValue("harness0HARPAT")>
                           PLUGIN_BASE_IMAGE_REGISTRY: harness0.harness.io/oci/docker_artifacts
@@ -526,8 +495,6 @@ pipeline:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker
                         settings:
-                          pull_image: true
-                          no_cache: true
                           username: <+secrets.getValue("harnesssecureusername")>
                           password: <+secrets.getValue("dockerHarnessSecurePwd")>
                           repo: harnesssecure/s3
@@ -552,9 +519,6 @@ pipeline:
                         caching: false
                         dockerfile: rf-plugins/drone-s3/Dockerfile.linux.arm64.rf
                         envVariables:
-                          PLUGIN_NO_CACHE: "true"
-                          PLUGIN_PULL_IMAGE: "true"
-                          PLUGIN_ENABLE_CACHE: "false"
                           PLUGIN_BASE_IMAGE_USERNAME: <+secrets.getValue("harness0HARUsername")>
                           PLUGIN_BASE_IMAGE_PASSWORD: <+secrets.getValue("harness0HARPAT")>
                           PLUGIN_BASE_IMAGE_REGISTRY: harness0.harness.io/oci/docker_artifacts
@@ -597,8 +561,6 @@ pipeline:
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
-                        envVariables:
-                          GOTOOLCHAIN: go1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -622,8 +584,6 @@ pipeline:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker
                         settings:
-                          pull_image: true
-                          no_cache: true
                           username: <+secrets.getValue("harnesssecureusername")>
                           password: <+secrets.getValue("dockerHarnessSecurePwd")>
                           repo: harnesssecure/s3
@@ -638,10 +598,6 @@ pipeline:
                       name: RF Build and Push on Branch
                       identifier: rf_build_push_branch_ltsc2022
                       spec:
-                        envVariables:
-                          PLUGIN_NO_CACHE: "true"
-                          PLUGIN_PULL_IMAGE: "true"
-                          PLUGIN_ENABLE_CACHE: "false"
                         connectorRef: harnesssecure
                         repo: harnesssecure/s3
                         tags:
@@ -680,7 +636,7 @@ pipeline:
                       name: Build Binary
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
-                        image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+                        image: golang:1.23.0@sha256:acfb46be39840f8c2a6b9efdd673c6627011200c73bab4e6d18b8b9ab4641c46
                         envVariables:
                           GOTOOLCHAIN: go1.26.10
                         shell: Sh
@@ -706,8 +662,6 @@ pipeline:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker
                         settings:
-                          pull_image: true
-                          no_cache: true
                           username: <+secrets.getValue("harnesssecureusername")>
                           password: <+secrets.getValue("dockerHarnessSecurePwd")>
                           repo: harnesssecure/s3
@@ -722,10 +676,6 @@ pipeline:
                       name: RF Build and Push on Branch
                       identifier: rf_build_push_branch_1809
                       spec:
-                        envVariables:
-                          PLUGIN_NO_CACHE: "true"
-                          PLUGIN_PULL_IMAGE: "true"
-                          PLUGIN_ENABLE_CACHE: "false"
                         connectorRef: harnesssecure
                         repo: harnesssecure/s3
                         tags:
@@ -773,8 +723,6 @@ pipeline:
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
-                        envVariables:
-                          GOTOOLCHAIN: go1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -798,8 +746,6 @@ pipeline:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker:21.3.0
                         settings:
-                          pull_image: true
-                          no_cache: true
                           username: drone
                           password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
                           repo: plugins/s3
@@ -814,10 +760,6 @@ pipeline:
                       name: Build and Push on Branch
                       identifier: BuildAndPushDockerRegistry_ltsc2025
                       spec:
-                        envVariables:
-                          PLUGIN_NO_CACHE: "true"
-                          PLUGIN_PULL_IMAGE: "true"
-                          PLUGIN_ENABLE_CACHE: "false"
                         connectorRef: Plugins_Docker_Hub_Connector
                         repo: plugins/s3
                         tags:
@@ -866,8 +808,6 @@ pipeline:
                       spec:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
-                        envVariables:
-                          GOTOOLCHAIN: go1.26.10
                         shell: Sh
                         command: |-
                           # force go modules
@@ -891,8 +831,6 @@ pipeline:
                         connectorRef: Plugins_Docker_Hub_Connector
                         image: plugins/docker:21.3.0
                         settings:
-                          pull_image: true
-                          no_cache: true
                           username: <+secrets.getValue("harnesssecureusername")>
                           password: <+secrets.getValue("dockerHarnessSecurePwd")>
                           repo: harnesssecure/s3
@@ -907,10 +845,6 @@ pipeline:
                       name: RF Build and Push on Branch
                       identifier: rf_build_push_branch
                       spec:
-                        envVariables:
-                          PLUGIN_NO_CACHE: "true"
-                          PLUGIN_PULL_IMAGE: "true"
-                          PLUGIN_ENABLE_CACHE: "false"
                         connectorRef: harnesssecure
                         repo: harnesssecure/s3
                         tags:

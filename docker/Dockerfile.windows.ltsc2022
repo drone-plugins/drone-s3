@@ -1,9 +1,9 @@
 # escape=`
 
-FROM mcr.microsoft.com/windows/servercore:ltsc2022@sha256:b52799a67fa596d4bddcd82ae1dab0077a84767fbc33c7342b72b53ecc71ad09 as core
+FROM mcr.microsoft.com/windows/servercore:ltsc2022 as core
 
 
-FROM plugins/base:windows-ltsc2022-amd64@sha256:b0e662a71fbe8a28147fae27a68aa4bc5236c02bbe3400513bbefdb0469a50ce
+FROM plugins/base:windows-ltsc2022-amd64
 USER ContainerAdministrator
 
 ENV GODEBUG=netdns=go
