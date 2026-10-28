@@ -9,7 +9,7 @@ pool:
 
 steps:
   - name: lint
-    image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+    image: golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b
     pull: always
     commands:
       - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
@@ -19,7 +19,7 @@ steps:
       - name: gopath
         path: "/go"
   - name: test
-    image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+    image: golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b
     commands:
       - go test -cover ./...
     volumes:
@@ -46,7 +46,7 @@ pool:
 
 steps:
   - name: environment
-    image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+    image: golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b
     pull: always
     environment:
       CGO_ENABLED: "0"
@@ -54,7 +54,7 @@ steps:
       - go version
       - go env
   - name: build
-    image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+    image: golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b
     environment:
       CGO_ENABLED: "0"
     commands:
@@ -90,7 +90,7 @@ pool:
 
 steps:
   - name: environment
-    image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+    image: golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b
     pull: always
     environment:
       CGO_ENABLED: "0"
@@ -98,7 +98,7 @@ steps:
       - go version
       - go env
   - name: build
-    image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+    image: golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b
     environment:
       CGO_ENABLED: "0"
     commands:
@@ -134,7 +134,7 @@ pool:
 
 steps:
   - name: environment
-    image: golang:1.23.0@sha256:acfb46be39840f8c2a6b9efdd673c6627011200c73bab4e6d18b8b9ab4641c46
+    image: golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b
     pull: always
     environment:
       CGO_ENABLED: "0"
@@ -143,7 +143,7 @@ steps:
       - go version
       - go env
   - name: build
-    image: golang:1.23.0@sha256:acfb46be39840f8c2a6b9efdd673c6627011200c73bab4e6d18b8b9ab4641c46
+    image: golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b
     environment:
       CGO_ENABLED: "0"
     commands:
@@ -186,7 +186,7 @@ pool:
 
 steps:
   - name: environment
-    image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+    image: golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b
     pull: always
     environment:
       CGO_ENABLED: "0"
@@ -194,7 +194,7 @@ steps:
       - go version
       - go env
   - name: build
-    image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+    image: golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b
     environment:
       CGO_ENABLED: "0"
     commands:
@@ -266,7 +266,7 @@ pool:
 steps:
   - name: build
     pull: always
-    image: golang:1.26.10@sha256:672c944cfd07599b5f1bb179869270cdc94c6254e41db4d431259693cb286b82
+    image: golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b
     commands:
       - GOOS=linux   GOARCH=amd64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-linux-amd64
       - GOOS=linux   GOARCH=arm64   go build -ldflags "-s -w" -a -tags netgo -o release/drone-s3-linux-arm64
