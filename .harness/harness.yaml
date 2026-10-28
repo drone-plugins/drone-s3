@@ -237,6 +237,8 @@ pipeline:
                           GOOS=windows
 
                           go build -v -ldflags "-X main.version=" -a -tags netgo -o release/windows/amd64/drone-s3.exe .
+                        envVariables:
+                          GOFLAGS: "-buildvcs=false"
                   - step:
                       type: Plugin
                       name: Build and Push on Tag
@@ -576,6 +578,8 @@ pipeline:
                           GOOS=windows
 
                           go build -v -ldflags "-X main.version=" -a -tags netgo -o release/windows/amd64/drone-s3.exe .
+                        envVariables:
+                          GOFLAGS: "-buildvcs=false"
                   - step:
                       type: Plugin
                       name: RF Build and Push on Tag
@@ -738,6 +742,8 @@ pipeline:
                           GOOS=windows
 
                           go build -v -ldflags "-X main.version=" -a -tags netgo -o release/windows/amd64/drone-s3.exe .
+                        envVariables:
+                          GOFLAGS: "-buildvcs=false"
                   - step:
                       type: Plugin
                       name: Build and Push on TAG
@@ -823,6 +829,8 @@ pipeline:
                           GOOS=windows
 
                           go build -v -ldflags "-X main.version=" -a -tags netgo -o release/windows/amd64/drone-s3.exe .
+                        envVariables:
+                          GOFLAGS: "-buildvcs=false"
                   - step:
                       type: Plugin
                       name: RF Build and Push on Tag
